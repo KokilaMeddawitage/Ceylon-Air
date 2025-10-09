@@ -37,7 +37,8 @@
     "victory-native": "^41.20.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "babel-plugin-dotenv": "^0.1.1"
   },
   "private": true
 }

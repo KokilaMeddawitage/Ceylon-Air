@@ -62,7 +62,10 @@ const Dashboard = () => {
       setError(null);
 
       // Get user location
+      console.log('Fetching user location...');
       const userLocation = await LocationService.getLocationForSriLanka();
+      console.log('User location received:', userLocation);
+      
       setLocation(userLocation);
 
       // Fetch weather data from APIs
@@ -180,9 +183,25 @@ const Dashboard = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>CeylonAir</Text>
         <Text style={styles.headerSubtitle}>Air Quality Monitor</Text>
-        {location && (
+        {location && location.latitude && location.longitude ? (
+          <View style={styles.locationContainer}>
+            <Text style={styles.locationText}>
+              {location.isDefault ? '📍🏠' : '📍📱'} {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+            </Text>
+            {location.accuracy && (
+              <Text style={styles.accuracyText}>
+                GPS Accuracy: ±{Math.round(location.accuracy)}m
+              </Text>
+            )}
+            {location.isDefault && (
+              <Text style={styles.defaultLocationText}>
+                Using default Colombo location
+              </Text>
+            )}
+          </View>
+        ) : (
           <Text style={styles.locationText}>
-            📍 {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+            📍 Getting your location...
           </Text>
         )}
       </View>
@@ -292,11 +311,27 @@ const styles = StyleSheet.create({
     color: 'white',
     opacity: 0.9,
   },
+  locationContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
   locationText: {
     fontSize: 12,
     color: 'white',
     opacity: 0.8,
-    marginTop: 10,
+  },
+  accuracyText: {
+    fontSize: 10,
+    color: 'white',
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  defaultLocationText: {
+    fontSize: 10,
+    color: 'white',
+    opacity: 0.6,
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   metricsGrid: {
     flexDirection: 'row',

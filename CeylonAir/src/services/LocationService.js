@@ -1,5 +1,5 @@
-import Geolocation from 'react-native-geolocation-service';
-import { PermissionsAndroid, Platform } from 'react-native';
+import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 class LocationService {
   constructor() {
@@ -9,89 +9,100 @@ class LocationService {
 
   async requestLocationPermission() {
     try {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Location Permission',
-            message: 'CeylonAir needs access to your location to provide air quality data for your area.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
-        
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          this.locationPermissionGranted = true;
-          return true;
-        } else {
-          this.locationPermissionGranted = false;
-          return false;
-        }
-      } else {
-        // iOS permissions are handled in app.json
-        this.locationPermissionGranted = true;
-        return true;
+      console.log('Requesting location permission...');
+      
+      // Request foreground location permission
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      
+      console.log('Location permission status:', status);
+      
+      if (status !== 'granted') {
+        console.warn('Location permission denied');
+        this.locationPermissionGranted = false;
+        return false;
       }
+
+      this.locationPermissionGranted = true;
+      console.log('Location permission granted');
+      return true;
     } catch (err) {
-      console.warn('Location permission error:', err);
+      console.error('Location permission error:', err);
+      this.locationPermissionGranted = false;
       return false;
     }
   }
 
   async getCurrentLocation() {
-    return new Promise((resolve, reject) => {
+    try {
       if (!this.locationPermissionGranted) {
-        reject(new Error('Location permission not granted'));
-        return;
+        throw new Error('Location permission not granted');
       }
 
-      Geolocation.getCurrentPosition(
-        (position) => {
-          this.currentLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: position.timestamp
-          };
-          
-          console.log('Current location:', this.currentLocation);
-          resolve(this.currentLocation);
-        },
-        (error) => {
-          console.error('Location error:', error);
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 10000
-        }
-      );
-    });
+      console.log('Getting current GPS location...');
+
+      // Get current position using Expo Location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeout: 15000,
+        maximumAge: 60000, // Cache for 1 minute
+      });
+
+      this.currentLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        timestamp: location.timestamp
+      };
+      
+      console.log('GPS location obtained:', this.currentLocation);
+      return this.currentLocation;
+      
+    } catch (error) {
+      console.error('GPS location error:', error);
+      throw error;
+    }
   }
 
   async getLocationForSriLanka() {
     try {
-      // If we can't get GPS location, default to Colombo, Sri Lanka
-      const defaultLocation = {
-        latitude: 6.9271,
-        longitude: 79.8612,
-        accuracy: null,
-        timestamp: Date.now()
-      };
+      console.log('getLocationForSriLanka: Starting location fetch...');
+      
+      // First ensure we have permission
+      if (!this.locationPermissionGranted) {
+        console.log('No permission yet, requesting...');
+        const hasPermission = await this.requestLocationPermission();
+        if (!hasPermission) {
+          console.warn('Location permission denied, using default location');
+          return this.getDefaultLocation();
+        }
+      }
 
+      // Try to get actual GPS location
       try {
+        console.log('Attempting to get GPS location...');
         const location = await this.getCurrentLocation();
+        console.log('✅ Successfully got GPS location:', location);
         return location;
       } catch (error) {
-        console.warn('Using default Colombo location due to GPS error:', error);
-        return defaultLocation;
+        console.error('❌ GPS failed, using default location. Error:', error.message);
+        return this.getDefaultLocation();
       }
+      
     } catch (error) {
       console.error('Location service error:', error);
-      throw error;
+      return this.getDefaultLocation();
     }
+  }
+
+  getDefaultLocation() {
+    console.log('Using default Colombo location');
+    return {
+      latitude: 6.9271,
+      longitude: 79.8612,
+      accuracy: null,
+      timestamp: Date.now(),
+      isDefault: true // Flag to indicate this is default location
+    };
   }
 
   calculateDistance(lat1, lon1, lat2, lon2) {
