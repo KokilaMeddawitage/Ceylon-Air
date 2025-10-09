@@ -1,0 +1,69 @@
+Build a cross-platform React Native (JavaScript) mobile app called CeylonAir that monitors Air Quality Index (AQI) and UV Index (UVI) for users in Sri Lanka.
+The app must demonstrate mobile computing concepts — context-awareness, mobility, edge processing, and sensor integration — using the following specification.
+
+Core Idea:
+CeylonAir auto-detects the user’s location via GPS and periodically (hourly) retrieves AQI and UV data from public APIs — IQAir, OpenWeatherMap, and WeatherAPI.
+It processes these readings locally using a hybrid algorithm to determine an Atmosphere Health Score, displays it on a color-coded dashboard, and triggers 
+context-aware notifications when risk levels exceed WHO/EPA thresholds.
+
+Functional Modules:
+
+Location (GPS): Use react-native-geolocation-service or expo-location to fetch latitude/longitude.
+API Layer (Axios):
+IQAir → AQI (nearest station).
+OpenWeatherMap → AQI + weather context.
+WeatherAPI → UV Index.
+
+Store API keys as placeholders.
+Hybrid Edge Algorithm:
+Prefer IQAir if station <2 km & <1 h old;
+2–10 km → average IQAir + OpenWeather;
+10 km or stale → use OpenWeather.
+
+Weight example: 10 km = 0.7/0.3, 30 km = 0.5/0.5.
+
+Risk Scoring:
+AQI categories: 0-50 Good, 51-100 Moderate, 101-150 Unhealthy-SG, >150 Unhealthy+.
+UV: 0-2 Low, 3-5 Moderate, 6-7 High, 8-10 Very High, 11+ Extreme.
+Final risk = worst of AQI/UV or via matrix.
+
+Scheduler + Alerts:
+Background fetch hourly (react-native-background-fetch or Expo).
+Trigger local notification (react-native-push-notification) when AQI > 150 or UV > 8.
+Storage: Cache last readings & thresholds in AsyncStorage.
+
+UI:
+Dashboard with AQI, UV, Atmosphere Score cards (color-coded).
+Map (react-native-maps) showing nearby stations.
+
+Simple chart (react-native-chart-kit / victory-native).
+Settings for custom alert thresholds.
+
+Architecture followingGPS Sensor → API Layer (IQAir, OWM, WeatherAPI)
+     ↓
+Edge Processing (Hybrid AQI + UV logic)
+     ↓
+Local Storage (AsyncStorage)
+     ↓
+Alert Engine (Thresholds + Notifications)
+     ↓
+User Interface (Dashboard, Map, Charts)
+
+Tech Stack:
+
+React Native (JS) + Expo (optional)
+axios | AsyncStorage | react-native-geolocation-service
+react-native-background-fetch | react-native-push-notification
+react-native-maps | victory-native / react-native-chart-kit
+
+Folder hint
+USe best practices in creating files
+src/
+ ├─ services/ (API, Location, Notification)
+ ├─ components/ (Dashboard, Settings, MapView)
+ ├─ utils/ (riskMatrix.js, helpers.js)
+
+Goal:
+Generate a working scaffold with mock API placeholders,
+hourly background logic, GPS sensing, hybrid AQI + UV computation, 
+and local notifications — all in JavaScript (React Native).

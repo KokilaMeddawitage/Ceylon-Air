@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "CeylonAir",
+    "slug": "ceylon-air",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "sdkVersion": "54.0.0",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to provide air quality data for your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to provide air quality data for your area.",
+        "UIBackgroundModes": ["background-fetch"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow CeylonAir to use your location to provide air quality data for your area."
+        }
+      ]
+    ]
+  }
+}
