@@ -4,7 +4,8 @@ import {
   Text,
   StyleSheet,
   Alert,
-  Dimensions
+  Dimensions,
+  ScrollView
 } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import LocationService from '../services/LocationService';
@@ -297,7 +298,11 @@ const AirQualityMapView = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Air Quality Stations</Text>
         <Text style={styles.headerSubtitle}>
@@ -305,18 +310,20 @@ const AirQualityMapView = () => {
         </Text>
       </View>
 
-      <MapView
-        style={styles.map}
-        region={region}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-        showsCompass={true}
-        showsScale={true}
-        customMapStyle={isNightMode ? nightMapStyle : []}
-      >
-        {userLocation && renderUserLocationCircle()}
-        {stations.map(renderStationMarker)}
-      </MapView>
+      <View style={styles.mapContainer}>
+        <MapView
+          style={styles.map}
+          region={region}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+          showsCompass={true}
+          showsScale={true}
+          customMapStyle={isNightMode ? nightMapStyle : []}
+        >
+          {userLocation && renderUserLocationCircle()}
+          {stations.map(renderStationMarker)}
+        </MapView>
+      </View>
 
       <View style={styles.legend}>
         <Text style={styles.legendTitle}>AQI Legend</Text>
@@ -343,7 +350,7 @@ const AirQualityMapView = () => {
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -351,6 +358,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212', // Dark background
+  },
+  scrollContent: {
+    paddingBottom: 40, // Add space for tab navigator
+  },
+  mapContainer: {
+    height: height * 0.675, // 60% of screen height for better proportions
+    width: width,
   },
   loadingContainer: {
     flex: 1,
@@ -389,6 +403,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderTopWidth: 1,
     borderTopColor: '#404040', // Dark border
+    minHeight: 120, // Ensure minimum height for legend content
   },
   legendTitle: {
     fontSize: 16,
