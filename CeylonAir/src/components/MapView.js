@@ -171,7 +171,7 @@ const AirQualityMapView = () => {
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
         }}
-        radius={50000} // 50km radius
+        radius={20000} // 20km radius
         strokeColor="#2196F3"
         strokeWidth={2}
         fillColor="rgba(33, 150, 243, 0.1)"
@@ -240,20 +240,20 @@ const AirQualityMapView = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', // Dark background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', // Dark background
   },
   loadingText: {
     fontSize: 18,
-    color: '#333',
+    color: '#E0E0E0', // Light text
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A', // Dark header
     padding: 15,
     paddingTop: 50,
     alignItems: 'center',
@@ -275,15 +275,15 @@ const styles = StyleSheet.create({
     height: height - 200,
   },
   legend: {
-    backgroundColor: 'white',
+    backgroundColor: '#2A2A2A', // Dark card background
     padding: 15,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: '#404040', // Dark border
   },
   legendTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#E0E0E0', // Light text
     marginBottom: 10,
   },
   legendItems: {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: '#666',
+    color: '#B0B0B0', // Muted light text
   },
 });
 

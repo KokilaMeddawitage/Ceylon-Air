@@ -31,12 +31,12 @@ const TabNavigator = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#2196F3',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#64B5F6',
+        tabBarInactiveTintColor: '#888888',
         tabBarStyle: {
-          backgroundColor: 'white',
+          backgroundColor: '#2A2A2A',
           borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
+          borderTopColor: '#404040',
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,
@@ -81,8 +81,20 @@ const TabNavigator = () => {
 };
 
 const AppNavigator = () => {
+  const darkTheme = {
+    dark: true,
+    colors: {
+      primary: '#64B5F6',
+      background: '#121212',
+      card: '#2A2A2A',
+      text: '#E0E0E0',
+      border: '#404040',
+      notification: '#FF6B6B',
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={darkTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainTabs" component={TabNavigator} />
       </Stack.Navigator>
