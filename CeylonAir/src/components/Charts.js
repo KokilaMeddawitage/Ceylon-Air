@@ -304,7 +304,11 @@ const ChartsView = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Historical Data</Text>
       </View>
@@ -341,6 +345,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212', // Dark background
+  },
+  scrollContent: {
+    paddingBottom: 120, // Add space for tab navigator
   },
   loadingContainer: {
     flex: 1,

@@ -152,7 +152,11 @@ const Settings = ({ navigation }) => {
   ];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
@@ -230,20 +234,23 @@ const Settings = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // Dark background
+    backgroundColor: '#121212', 
+  },
+  scrollContent: {
+    paddingBottom: 120, 
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212', // Dark background
+    backgroundColor: '#121212', 
   },
   loadingText: {
     fontSize: 18,
-    color: '#E0E0E0', // Light text
+    color: '#E0E0E0', 
   },
   header: {
-    backgroundColor: '#1A1A1A', // Dark header
+    backgroundColor: '#1A1A1A', 
     padding: 20,
     paddingTop: 50,
     alignItems: 'center',
@@ -254,7 +261,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   section: {
-    backgroundColor: '#2A2A2A', // Dark card background
+    backgroundColor: '#2A2A2A',
     margin: 10,
     padding: 20,
     borderRadius: 15,
@@ -267,7 +274,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#E0E0E0', // Light text
+    color: '#E0E0E0', 
     marginBottom: 15,
   },
   switchContainer: {
@@ -278,7 +285,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    color: '#E0E0E0', // Light text
+    color: '#E0E0E0',
   },
   pickerContainer: {
     marginBottom: 20,
@@ -286,11 +293,12 @@ const styles = StyleSheet.create({
   pickerLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#E0E0E0', // Light text
+    color: '#E0E0E0',
     marginBottom: 10,
   },
   picker: {
-    backgroundColor: '#404040', // Dark picker background
+    backgroundColor: '#404040',
+    color: '#E0E0E0',
     borderRadius: 10,
   },
   saveButton: {
@@ -301,7 +309,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   saveButtonText: {
-    color: 'white',
+    color: 'black',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -313,7 +321,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   testButtonText: {
-    color: 'white',
+    color: 'black',
     fontSize: 16,
     fontWeight: 'bold',
   },

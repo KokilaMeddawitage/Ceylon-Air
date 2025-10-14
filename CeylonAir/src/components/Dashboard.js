@@ -223,6 +223,8 @@ const Dashboard = () => {
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -327,6 +329,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212', // Dark background
+  },
+  scrollContent: {
+    paddingBottom: 120, 
   },
   loadingContainer: {
     flex: 1,
