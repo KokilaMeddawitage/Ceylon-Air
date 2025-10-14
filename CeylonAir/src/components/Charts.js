@@ -134,12 +134,12 @@ const ChartsView = () => {
           width={width - 40}
           height={220}
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: '#2A2A2A',
+            backgroundGradientFrom: '#2A2A2A',
+            backgroundGradientTo: '#2A2A2A',
             decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            color: (opacity = 1) => `rgba(100, 181, 246, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(224, 224, 224, ${opacity})`,
             style: {
               borderRadius: 16
             },
@@ -182,12 +182,12 @@ const ChartsView = () => {
           width={width - 40}
           height={220}
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: '#2A2A2A',
+            backgroundGradientFrom: '#2A2A2A',
+            backgroundGradientTo: '#2A2A2A',
             decimalPlaces: 0,
             color: (opacity = 1) => `rgba(255, 152, 0, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(224, 224, 224, ${opacity})`,
             style: {
               borderRadius: 16
             },
@@ -230,12 +230,12 @@ const ChartsView = () => {
           width={width - 40}
           height={220}
           chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
+            backgroundColor: '#2A2A2A',
+            backgroundGradientFrom: '#2A2A2A',
+            backgroundGradientTo: '#2A2A2A',
             decimalPlaces: 0,
             color: (opacity = 1) => `rgba(244, 67, 54, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(224, 224, 224, ${opacity})`,
             style: {
               borderRadius: 16
             },
@@ -272,7 +272,7 @@ const ChartsView = () => {
         name: category,
         population: count,
         color: getAQIColor(category === 'Good' ? 25 : category === 'Moderate' ? 75 : category === 'Unhealthy SG' ? 125 : category === 'Unhealthy' ? 175 : 250),
-        legendFontColor: '#333',
+        legendFontColor: '#E0E0E0',
         legendFontSize: 12,
       }));
 
@@ -340,20 +340,20 @@ const ChartsView = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', // Dark background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', // Dark background
   },
   loadingText: {
     fontSize: 18,
-    color: '#333',
+    color: '#E0E0E0', // Light text
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A', // Dark header
     padding: 20,
     paddingTop: 50,
     alignItems: 'center',
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#2A2A2A', // Dark card background
     marginHorizontal: 10,
     marginTop: 10,
     borderRadius: 10,
@@ -377,33 +377,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginHorizontal: 5,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#404040', // Darker button background
   },
   periodButtonActive: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#64B5F6', // Light blue for dark theme
   },
   periodButtonText: {
-    color: '#333',
+    color: '#E0E0E0', // Light text
     fontWeight: 'bold',
   },
   periodButtonTextActive: {
     color: 'white',
   },
   chartContainer: {
-    backgroundColor: 'white',
+    backgroundColor: '#2A2A2A', // Dark card background
     margin: 10,
     padding: 20,
     borderRadius: 15,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.4,
     shadowRadius: 2.22,
   },
   chartTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#E0E0E0', // Light text
     marginBottom: 15,
     textAlign: 'center',
   },
