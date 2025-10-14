@@ -46,10 +46,11 @@ class HybridAlgorithm {
       );
 
       // Generate recommendations
-      processedData.recommendations = this.generateRecommendations(
+      const recommendationData = this.generateRecommendations(
         processedData.aqi, 
         processedData.uv
       );
+      processedData.recommendations = recommendationData;
 
       console.log('Hybrid algorithm processing complete:', processedData);
       return processedData;
@@ -194,28 +195,42 @@ class HybridAlgorithm {
 
   // Generate health recommendations
   generateRecommendations(aqi, uv) {
-    const recommendations = [];
+    const aqiRecommendations = [];
+    const uvRecommendations = [];
 
     // AQI-based recommendations
     if (aqi.value > 150) {
-      recommendations.push('Avoid outdoor activities');
-      recommendations.push('Keep windows and doors closed');
-      recommendations.push('Use air purifiers if available');
+      aqiRecommendations.push('Avoid outdoor activities');
+      aqiRecommendations.push('Keep windows and doors closed');
+      aqiRecommendations.push('Use air purifiers if available');
     } else if (aqi.value > 100) {
-      recommendations.push('Limit outdoor activities');
-      recommendations.push('Sensitive groups should avoid outdoor exercise');
+      aqiRecommendations.push('Limit outdoor activities');
+      aqiRecommendations.push('Sensitive groups should avoid outdoor exercise');
+    } else if (aqi.value > 50) {
+      aqiRecommendations.push('Air quality is acceptable for most activities');
+    } else {
+      aqiRecommendations.push('Air quality is good - enjoy outdoor activities');
     }
 
     // UV-based recommendations
     if (uv.value > 8) {
-      recommendations.push('Avoid sun exposure during peak hours (10 AM - 4 PM)');
-      recommendations.push('Use sunscreen with SPF 30+');
-      recommendations.push('Wear protective clothing and hat');
+      uvRecommendations.push('Avoid sun exposure during peak hours (10 AM - 4 PM)');
+      uvRecommendations.push('Use sunscreen with SPF 30+');
+      uvRecommendations.push('Wear protective clothing and hat');
     } else if (uv.value > 6) {
-      recommendations.push('Use sunscreen and seek shade during midday');
+      uvRecommendations.push('Use sunscreen and seek shade during midday');
+      uvRecommendations.push('Wear protective clothing when outdoors');
+    } else if (uv.value > 3) {
+      uvRecommendations.push('Use sunscreen if spending time outdoors');
+    } else {
+      uvRecommendations.push('UV levels are low - minimal protection needed');
     }
 
-    return recommendations;
+    return {
+      aqi: aqiRecommendations,
+      uv: uvRecommendations,
+      all: [...aqiRecommendations, ...uvRecommendations] // For backward compatibility
+    };
   }
 
   // Helper functions

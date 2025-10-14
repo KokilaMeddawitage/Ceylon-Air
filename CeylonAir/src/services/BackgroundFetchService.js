@@ -1,9 +1,14 @@
-import BackgroundFetch from 'react-native-background-fetch';
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as TaskManager from 'expo-task-manager';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from './LocationService';
 import ApiService from './ApiService';
 import HybridAlgorithm from '../utils/hybridAlgorithm';
 import NotificationService from './NotificationService';
+
+const BACKGROUND_FETCH_TASK = 'CEYLON_AIR_BACKGROUND_FETCH_TASK';
 
 class BackgroundFetchService {
   constructor() {
@@ -16,20 +21,41 @@ class BackgroundFetchService {
     if (this.isInitialized) return;
 
     try {
-      // Initialize background fetch
-      await BackgroundFetch.configure({
-        minimumFetchInterval: 60, // Minimum interval in minutes
-        stopOnTerminate: false,
-        startOnBoot: true,
-        enableHeadless: true,
-        requiredNetworkType: BackgroundFetch.NETWORK_TYPE_ANY,
-      }, async (taskId) => {
-        console.log('[BackgroundFetch] taskId:', taskId);
-        await this.performBackgroundFetch();
-        BackgroundFetch.finish(taskId);
-      }, (error) => {
-        console.log('[BackgroundFetch] failed to start');
-      });
+      // Skip background task registration in Expo Go (unsupported)
+      if (Constants?.appOwnership === 'expo') {
+        console.warn('Background fetch is not supported in Expo Go. Use a development build.');
+      } else {
+      // Define background task (idempotent)
+      if (!TaskManager.isTaskDefined(BACKGROUND_FETCH_TASK)) {
+        TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
+          try {
+            console.log('[BackgroundFetch] task fired');
+            await this.performBackgroundFetch();
+            return BackgroundFetch.Result.NewData;
+          } catch (e) {
+            console.error('Background task error:', e);
+            return BackgroundFetch.Result.Failed;
+          }
+        });
+      }
+
+      // Register background fetch with minimum interval 60 minutes
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK);
+      if (!isRegistered) {
+        await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+          minimumInterval: 60 * 60, // seconds
+          stopOnTerminate: false,
+          startOnBoot: true,
+        });
+      }
+
+      // Also set global minimum interval (best-effort on platforms that support it)
+      try {
+        await BackgroundFetch.setMinimumIntervalAsync(60 * 60); // seconds
+      } catch (e) {
+        // noop if not supported on platform
+      }
+      }
 
       // Initialize notification service
       await NotificationService.initialize();
@@ -130,17 +156,8 @@ class BackgroundFetchService {
   async startPeriodicFetch() {
     try {
       await this.initialize();
-      
-      // Start background fetch
-      const status = await BackgroundFetch.status();
-      console.log('Background fetch status:', status);
-      
-      if (status === BackgroundFetch.STATUS_AVAILABLE) {
-        await BackgroundFetch.start();
-        console.log('Periodic background fetch started');
-      } else {
-        console.log('Background fetch not available on this device');
-      }
+      // Nothing else needed; task is registered in initialize()
+      console.log('Periodic background fetch ensured registered');
       
     } catch (error) {
       console.error('Error starting periodic fetch:', error);
@@ -149,8 +166,11 @@ class BackgroundFetchService {
 
   async stopPeriodicFetch() {
     try {
-      await BackgroundFetch.stop();
-      console.log('Periodic background fetch stopped');
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK);
+      if (isRegistered) {
+        await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+      }
+      console.log('Periodic background fetch unregistered');
     } catch (error) {
       console.error('Error stopping periodic fetch:', error);
     }
@@ -158,9 +178,9 @@ class BackgroundFetchService {
 
   async getFetchStatus() {
     try {
-      const status = await BackgroundFetch.status();
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK);
       return {
-        status: status,
+        status: isRegistered ? 'registered' : 'not_registered',
         isInitialized: this.isInitialized,
         lastFetchTime: this.lastFetchTime,
         fetchInterval: this.fetchInterval
