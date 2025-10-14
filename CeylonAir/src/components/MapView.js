@@ -22,10 +22,24 @@ const AirQualityMapView = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isNightMode, setIsNightMode] = useState(false);
 
   useEffect(() => {
     initializeMap();
+    checkTimeAndSetMapStyle();
+    
+    // Update map style every hour
+    const interval = setInterval(checkTimeAndSetMapStyle, 3600000); // 1 hour
+    return () => clearInterval(interval);
   }, []);
+
+  const checkTimeAndSetMapStyle = () => {
+    const currentHour = new Date().getHours();
+    // Night mode: 6 PM to 6 AM (18:00 - 06:00)
+    const isNight = currentHour >= 18 || currentHour < 6;
+    setIsNightMode(isNight);
+    console.log(`Current hour: ${currentHour}, Night mode: ${isNight}`);
+  };
 
   const initializeMap = async () => {
     try {
@@ -162,8 +176,103 @@ const AirQualityMapView = () => {
     );
   };
 
+  // Google Maps Night Mode Style
+  const nightMapStyle = [
+    {
+      "elementType": "geometry",
+      "stylers": [{"color": "#242f3e"}]
+    },
+    {
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#746855"}]
+    },
+    {
+      "elementType": "labels.text.stroke",
+      "stylers": [{"color": "#242f3e"}]
+    },
+    {
+      "featureType": "administrative.locality",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#d59563"}]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#d59563"}]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "geometry",
+      "stylers": [{"color": "#263c3f"}]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#6b9a76"}]
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry",
+      "stylers": [{"color": "#38414e"}]
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry.stroke",
+      "stylers": [{"color": "#212a37"}]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#9ca5b3"}]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry",
+      "stylers": [{"color": "#746855"}]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry.stroke",
+      "stylers": [{"color": "#1f2835"}]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#f3d19c"}]
+    },
+    {
+      "featureType": "transit",
+      "elementType": "geometry",
+      "stylers": [{"color": "#2f3948"}]
+    },
+    {
+      "featureType": "transit.station",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#d59563"}]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [{"color": "#17263c"}]
+    },
+    {
+      "featureType": "water",
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#515c6d"}]
+    },
+    {
+      "featureType": "water",
+      "elementType": "labels.text.stroke",
+      "stylers": [{"color": "#17263c"}]
+    }
+  ];
+
   const renderUserLocationCircle = () => {
     if (!userLocation) return null;
+
+    // Adjust circle colors based on map style
+    const strokeColor = isNightMode ? "#64B5F6" : "#2196F3";
+    const fillColor = isNightMode ? "rgba(100, 181, 246, 0.15)" : "rgba(33, 150, 243, 0.1)";
 
     return (
       <Circle
@@ -172,9 +281,9 @@ const AirQualityMapView = () => {
           longitude: userLocation.longitude,
         }}
         radius={20000} // 20km radius
-        strokeColor="#2196F3"
+        strokeColor={strokeColor}
         strokeWidth={2}
-        fillColor="rgba(33, 150, 243, 0.1)"
+        fillColor={fillColor}
       />
     );
   };
@@ -203,6 +312,7 @@ const AirQualityMapView = () => {
         showsMyLocationButton={true}
         showsCompass={true}
         showsScale={true}
+        customMapStyle={isNightMode ? nightMapStyle : []}
       >
         {userLocation && renderUserLocationCircle()}
         {stations.map(renderStationMarker)}
