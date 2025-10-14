@@ -7,7 +7,7 @@ class ApiService {
     this.baseUrls = BASE_URLS;
     this.apiKeys = API_KEYS;
     this.config = CONFIG;
-    
+
     // Validate API keys on initialization
     if (CONFIG.DEBUG) {
       this.validateConfiguration();
@@ -16,7 +16,7 @@ class ApiService {
 
   validateConfiguration() {
     console.log('🔧 ApiService: Validating configuration...');
-    
+
     // Check if API keys are properly loaded
     const missingKeys = [];
     Object.entries(this.apiKeys).forEach(([service, key]) => {
@@ -24,7 +24,7 @@ class ApiService {
         missingKeys.push(service);
       }
     });
-    
+
     if (missingKeys.length > 0) {
       console.error('❌ Missing API keys:', missingKeys);
     } else {
@@ -37,9 +37,9 @@ class ApiService {
     try {
       // Construct the API URL with coordinates and API key
       const url = `${this.baseUrls.IQAIR}/nearest_city?lat=${latitude}&lon=${longitude}&key=${this.apiKeys.IQAIR}`;
-      
+
       console.log('Fetching IQAir data from:', url);
-      
+
       // Make the actual API call
       const response = await axios.get(url, {
         timeout: 10000, // 10 second timeout
@@ -56,10 +56,10 @@ class ApiService {
       } else {
         throw new Error(`IQAir API error: ${response.data?.data?.message || 'Unknown error'}`);
       }
-      
+
     } catch (error) {
       console.error('IQAir API error:', error);
-      
+
       // If API fails, return fallback mock data to prevent app crash
       console.warn('Falling back to mock data due to API error');
       const fallbackData = {
@@ -92,7 +92,7 @@ class ApiService {
           }
         }
       };
-      
+
       return fallbackData;
     }
   }
@@ -102,9 +102,9 @@ class ApiService {
     try {
       // Construct the API URL for air pollution data
       const url = `${this.baseUrls.OPENWEATHER}/air_pollution?lat=${latitude}&lon=${longitude}&appid=${this.apiKeys.OPENWEATHER}`;
-      
+
       console.log('Fetching OpenWeather air pollution data from:', url);
-      
+
       // Make the actual API call
       const response = await axios.get(url, {
         timeout: 10000, // 10 second timeout
@@ -121,10 +121,10 @@ class ApiService {
       } else {
         throw new Error('OpenWeather API returned invalid data');
       }
-      
+
     } catch (error) {
       console.error('OpenWeather API error:', error);
-      
+
       // If API fails, return fallback mock data to prevent app crash
       console.warn('Falling back to mock data due to OpenWeather API error');
       const fallbackData = {
@@ -151,7 +151,7 @@ class ApiService {
           }
         ]
       };
-      
+
       return fallbackData;
     }
   }
@@ -161,9 +161,9 @@ class ApiService {
     try {
       // Construct the API URL for UV index data
       const url = `${this.baseUrls.OPENWEATHER}/uvi?lat=${latitude}&lon=${longitude}&appid=${this.apiKeys.OPENWEATHER}`;
-      
+
       console.log('Fetching OpenWeather UV data from:', url);
-      
+
       // Make the actual API call
       const response = await axios.get(url, {
         timeout: 10000, // 10 second timeout
@@ -180,10 +180,10 @@ class ApiService {
       } else {
         throw new Error('OpenWeather UV API returned invalid data');
       }
-      
+
     } catch (error) {
       console.error('OpenWeather UV API error:', error);
-      
+
       // If API fails, return fallback mock data to prevent app crash
       console.warn('Falling back to mock UV data due to API error');
       const fallbackUVData = {
@@ -193,7 +193,7 @@ class ApiService {
         date: Math.floor(Date.now() / 1000),
         value: Math.floor(Math.random() * 12) + 1 // UV Index 1-12
       };
-      
+
       return fallbackUVData;
     }
   }
@@ -203,9 +203,9 @@ class ApiService {
     try {
       // Construct the API URL for current weather with air quality data
       const url = `${this.baseUrls.WEATHERAPI}/current.json?key=${this.apiKeys.WEATHERAPI}&q=${latitude},${longitude}&aqi=yes`;
-      
+
       console.log('Fetching WeatherAPI data from:', url);
-      
+
       // Make the actual API call
       const response = await axios.get(url, {
         timeout: 10000, // 10 second timeout
@@ -222,10 +222,10 @@ class ApiService {
       } else {
         throw new Error('WeatherAPI returned invalid data');
       }
-      
+
     } catch (error) {
       console.error('WeatherAPI error:', error);
-      
+
       // If API fails, return fallback mock data to prevent app crash
       console.warn('Falling back to mock data due to WeatherAPI error');
       const fallbackData = {
@@ -275,7 +275,7 @@ class ApiService {
           }
         }
       };
-      
+
       return fallbackData;
     }
   }
@@ -284,7 +284,7 @@ class ApiService {
   async getAllWeatherData(latitude, longitude) {
     try {
       console.log('Fetching weather data for coordinates:', latitude, longitude);
-      
+
       const [iqAirData, openWeatherData, weatherApiData] = await Promise.allSettled([
         this.getIQAirData(latitude, longitude),
         this.getOpenWeatherData(latitude, longitude),

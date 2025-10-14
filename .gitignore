@@ -55,3 +55,7 @@ ios/build/
 # Misc
 coverage/
 .eslintcache
+
+# ignore secrets
+.env
+.env.*.local
