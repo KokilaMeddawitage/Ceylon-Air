@@ -307,6 +307,173 @@ class ApiService {
     }
   }
 
+  /**
+   * Fetches all available IQAir monitoring stations (cities) for Sri Lanka.
+   * Returns a list of stations with city, coordinates, and AQI values if available.
+   */
+  async getAllIQAirStations(country = 'Sri Lanka') {
+    try {
+      const url = `${this.baseUrls.IQAIR}/cities?country=${encodeURIComponent(country)}&key=${this.apiKeys.IQAIR}`;
+
+      console.log('Fetching all IQAir stations from:', url);
+
+      const response = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data && response.data.status === 'success') {
+        const stations = response.data.data;
+
+        console.log(`✅ Received ${stations.length} IQAir stations for ${country}`);
+
+        // Each item has { city, state, country }
+        // Now fetch coordinates and AQI for each (limited to top few for efficiency)
+        const detailedStations = await Promise.all(
+          stations.slice(0, 20).map(async (st) => {
+            try {
+              const cityUrl = `${this.baseUrls.IQAIR}/city?city=${encodeURIComponent(st.city)}&state=${encodeURIComponent(st.state)}&country=${encodeURIComponent(st.country)}&key=${this.apiKeys.IQAIR}`;
+              const cityRes = await axios.get(cityUrl, { timeout: 8000 });
+
+              if (cityRes.data.status === 'success') {
+                const cityData = cityRes.data.data;
+                return {
+                  city: cityData.city,
+                  state: cityData.state,
+                  country: cityData.country,
+                  latitude: cityData.location.coordinates[1],
+                  longitude: cityData.location.coordinates[0],
+                  aqi: cityData.current.pollution.aqius,
+                  category: this.getAqiCategory(cityData.current.pollution.aqius)
+                };
+              } else {
+                return {
+                  city: st.city,
+                  state: st.state,
+                  country: st.country,
+                  latitude: null,
+                  longitude: null,
+                  aqi: null,
+                  category: 'Unknown'
+                };
+              }
+            } catch (err) {
+              console.warn(`⚠️ Failed to fetch details for ${st.city}:`, err.message);
+              return {
+                city: st.city,
+                state: st.state,
+                country: st.country,
+                latitude: null,
+                longitude: null,
+                aqi: null,
+                category: 'Unknown'
+              };
+            }
+          })
+        );
+
+        return detailedStations;
+      } else {
+        throw new Error(`IQAir API error: ${response.data?.data?.message || 'Unknown error'}`);
+      }
+
+    } catch (error) {
+      console.error('❌ IQAir getAllStations() error:', error);
+
+      // Fallback mock stations (to avoid app crash)
+      console.warn('⚠️ Falling back to mock station list due to API failure');
+
+      const mockStations = [
+        {
+          city: 'Colombo',
+          state: 'Western Province',
+          country: 'Sri Lanka',
+          latitude: 6.9271,
+          longitude: 79.8612,
+          aqi: 85,
+          category: 'Moderate'
+        },
+        {
+          city: 'Kandy',
+          state: 'Central Province',
+          country: 'Sri Lanka',
+          latitude: 7.2906,
+          longitude: 80.6337,
+          aqi: 72,
+          category: 'Moderate'
+        },
+        {
+          city: 'Galle',
+          state: 'Southern Province',
+          country: 'Sri Lanka',
+          latitude: 6.0329,
+          longitude: 80.217,
+          aqi: 95,
+          category: 'Moderate'
+        },
+        {
+          city: 'Jaffna',
+          state: 'Northern Province',
+          country: 'Sri Lanka',
+          latitude: 9.6615,
+          longitude: 80.0255,
+          aqi: 68,
+          category: 'Moderate'
+        },
+        {
+          city: 'Anuradhapura',
+          state: 'North Central Province',
+          country: 'Sri Lanka',
+          latitude: 8.3114,
+          longitude: 80.4037,
+          aqi: 110,
+          category: 'Unhealthy for Sensitive Groups'
+        }
+      ];
+
+      return mockStations;
+    }
+  }
+
+  async getNearestIQAirCity(location) {
+    try {
+      const url = `${this.baseUrls.IQAIR}/nearest_city?lat=${location.latitude}&lon=${location.longitude}&key=${this.apiKeys.IQAIR}`;
+      console.log('[IQAir] Fetching nearest city from:', url);
+
+      const response = await axios.get(url, { timeout: CONFIG.REQUEST_TIMEOUT });
+      if (response.data?.status === 'success') {
+        const data = response.data.data;
+        return {
+          city: data.city,
+          state: data.state,
+          country: data.country,
+          latitude: data.location.coordinates[1],
+          longitude: data.location.coordinates[0],
+          aqi: data.current.pollution.aqius,
+          category: getAqiCategory(data.current.pollution.aqius),
+        };
+      }
+      throw new Error(`IQAir API returned error: ${response.data?.data?.message}`);
+    } catch (err) {
+      console.error('[IQAir] Error fetching nearest city:', err.message);
+      return null;
+    }
+  }
+  /**
+   * Helper: Categorize AQI value
+   */
+  getAqiCategory(aqi) {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 150) return 'Unhealthy for Sensitive Groups';
+    if (aqi <= 200) return 'Unhealthy';
+    return 'Very Unhealthy';
+  }
+
+
   // Convert OpenWeather AQI (1-5) to standard AQI (0-500)
   convertOpenWeatherAQI(aqi) {
     const conversion = {

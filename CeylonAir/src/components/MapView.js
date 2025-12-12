@@ -9,13 +9,14 @@ import {
 import MapView, { Marker, Circle } from 'react-native-maps';
 import LocationService from '../services/LocationService';
 import ApiService from '../services/ApiService';
+import CONFIG from '../config/environment';
 
 const { width, height } = Dimensions.get('window');
 
 const AirQualityMapView = () => {
   const [region, setRegion] = useState({
-    latitude: 6.9271,
-    longitude: 79.8612,
+    latitude: CONFIG.DEFAULT_LOCATION.latitude,
+    longitude: CONFIG.DEFAULT_LOCATION.longitude,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -27,6 +28,7 @@ const AirQualityMapView = () => {
     initializeMap();
   }, []);
 
+  // 1. Initialize Map and Load Station Data
   const initializeMap = async () => {
     try {
       // Get user location
@@ -43,7 +45,7 @@ const AirQualityMapView = () => {
 
       // Load nearby stations (mock data for demonstration)
       await loadNearbyStations(location);
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Error initializing map:', error);
@@ -51,81 +53,111 @@ const AirQualityMapView = () => {
       setLoading(false);
     }
   };
-
+  // 2. Fetch All Required Data
   const loadNearbyStations = async (location) => {
     try {
-      // Mock station data for Sri Lanka
-      const mockStations = [
-        {
-          id: '1',
-          name: 'Colombo Central',
-          latitude: 6.9271,
-          longitude: 79.8612,
-          aqi: 85,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 0
-        },
-        {
-          id: '2',
-          name: 'Kandy',
-          latitude: 7.2906,
-          longitude: 80.6337,
-          aqi: 72,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 115
-        },
-        {
-          id: '3',
-          name: 'Galle',
-          latitude: 6.0329,
-          longitude: 80.2170,
-          aqi: 95,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 120
-        },
-        {
-          id: '4',
-          name: 'Jaffna',
-          latitude: 9.6615,
-          longitude: 80.0255,
-          aqi: 68,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 400
-        },
-        {
-          id: '5',
-          name: 'Anuradhapura',
-          latitude: 8.3114,
-          longitude: 80.4037,
-          aqi: 110,
-          category: 'Unhealthy for Sensitive Groups',
-          lastUpdate: new Date().toISOString(),
-          distance: 200
-        }
-      ];
+      const iqAirStations = await ApiService.getAllIQAirStations('Sri Lanka');
 
-      // Calculate distances and filter nearby stations
-      const nearbyStations = mockStations
-        .map(station => ({
-          ...station,
-          distance: LocationService.calculateDistance(
-            location.latitude,
-            location.longitude,
-            station.latitude,
-            station.longitude
-          )
-        }))
-        .filter(station => station.distance <= 500) // Within 500km
-        .sort((a, b) => a.distance - b.distance);
+      // (b) Get current AQI/UVI data for user's current location
+      const [iqAirCurrent, openWeatherCurrent, weatherApiCurrent] = await Promise.all([
+        ApiService.getNearestIQAirCity(location),
+        ApiService.getOpenWeatherAQI(location),
+        ApiService.getWeatherAPIUV(location),
+      ]);
 
-      setStations(nearbyStations);
+      // 3. Calculate distance from user → each IQAir station
+      // -----------------------------------------------------------------
+      const processedStations = iqAirStations.map(st => ({
+        id: st.city || st.id,
+        name: st.city,
+        latitude: st.latitude,
+        longitude: st.longitude,
+        distance: LocationService.calculateDistance(
+          location.latitude,
+          location.longitude,
+          st.latitude,
+          st.longitude
+        ),
+        aqi: st.aqi || null,
+        category: st.category || null,
+        source: 'IQAir',
+      }));
+
+      // Sort by distance ascending
+      processedStations.sort((a, b) => a.distance - b.distance);
+
+      // 4. Create priority stations list
+      // -----------------------------------------------------------------
+      const liveStations = [];
+
+      if (iqAirCurrent) {
+        liveStations.push({
+          id: 'live_iqair',
+          name: `Current (IQAir - ${iqAirCurrent.city})`,
+          latitude: iqAirCurrent.latitude,
+          longitude: iqAirCurrent.longitude,
+          aqi: iqAirCurrent.aqi,
+          category: getAqiCategory(iqAirCurrent.aqi),
+          distance: 0,
+          source: 'IQAir',
+        });
+      }
+
+      if (openWeatherCurrent) {
+        liveStations.push({
+          id: 'live_openweather',
+          name: 'Current (OpenWeather)',
+          latitude: location.latitude,
+          longitude: location.longitude,
+          aqi: openWeatherCurrent.aqi,
+          category: getAqiCategory(openWeatherCurrent.aqi),
+          distance: 0,
+          source: 'OpenWeather',
+        });
+      }
+
+      if (weatherApiCurrent) {
+        liveStations.push({
+          id: 'live_weatherapi',
+          name: 'Current (WeatherAPI)',
+          latitude: location.latitude,
+          longitude: location.longitude,
+          aqi: null,
+          uvIndex: weatherApiCurrent.uv,
+          category: getUvCategory(weatherApiCurrent.uv),
+          distance: 0,
+          source: 'WeatherAPI',
+        });
+      }
+
+      // Combine live + nearby stations
+      const allStations = [...liveStations, ...processedStations];
+
+      setStations(allStations);
+
     } catch (error) {
       console.error('Error loading stations:', error);
     }
+  };
+
+  // 5. Utility functions
+  // -------------------------------------------------------------------
+  const getAqiCategory = (aqi) => {
+    if (aqi == null) return 'Unknown';
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 150) return 'Unhealthy for Sensitive Groups';
+    if (aqi <= 200) return 'Unhealthy';
+    return 'Very Unhealthy';
+  };
+
+  const getUvCategory = (uv) => {
+    if (uv == null) return 'Unknown';
+    if (uv < 3) return 'Low';
+    if (uv < 6) return 'Moderate';
+    if (uv < 8) return 'High';
+    if (uv < 11) return 'Very High';
+    return 'Extreme';
   };
 
   const getMarkerColor = (aqi) => {
