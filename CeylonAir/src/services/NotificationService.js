@@ -1,4 +1,6 @@
-import PushNotification from 'react-native-push-notification';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class NotificationService {
@@ -14,48 +16,38 @@ class NotificationService {
     if (this.isInitialized) return;
 
     try {
-      // Configure push notifications
-      PushNotification.configure({
-        onRegister: function (token) {
-          console.log('TOKEN:', token);
-        },
-
-        onNotification: function (notification) {
-          console.log('NOTIFICATION:', notification);
-        },
-
-        onAction: function (notification) {
-          console.log('ACTION:', notification.action);
-          console.log('NOTIFICATION:', notification);
-        },
-
-        onRegistrationError: function(err) {
-          console.error(err.message, err);
-        },
-
-        permissions: {
-          alert: true,
-          badge: true,
-          sound: true,
-        },
-
-        popInitialNotification: true,
-        requestPermissions: true,
+      // Configure handler to show alerts when foregrounded
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
       });
 
-      // Create notification channel for Android
-      PushNotification.createChannel(
-        {
-          channelId: "ceylon-air-alerts",
-          channelName: "CeylonAir Health Alerts",
-          channelDescription: "Air quality and UV index health alerts",
-          playSound: true,
-          soundName: "default",
-          importance: 4,
-          vibrate: true,
-        },
-        (created) => console.log(`createChannel returned '${created}'`)
-      );
+      // Request permissions
+      // In Expo Go, remote push is unsupported; still request local perms but avoid noisy logs
+      const { status: existing } = await Notifications.getPermissionsAsync();
+      let finalStatus = existing;
+      if (existing !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.warn('Notification permission not granted');
+      }
+
+      // Android channel
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('ceylon-air-alerts', {
+          name: 'CeylonAir Health Alerts',
+          importance: Notifications.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 300],
+          lightColor: '#FF6B6B',
+        });
+      }
 
       this.isInitialized = true;
       console.log('Notification service initialized');
@@ -95,21 +87,27 @@ class NotificationService {
 
       // Check AQI threshold
       if (weatherData.aqi && weatherData.aqi.value > thresholds.aqi) {
+        const aqiRecommendations = weatherData.recommendations?.aqi || 
+                                 (Array.isArray(weatherData.recommendations) ? weatherData.recommendations : []);
         alerts.push({
           type: 'aqi',
           level: weatherData.aqi.category,
           value: weatherData.aqi.value,
-          threshold: thresholds.aqi
+          threshold: thresholds.aqi,
+          recommendations: aqiRecommendations
         });
       }
 
       // Check UV threshold
       if (weatherData.uv && weatherData.uv.value > thresholds.uv) {
+        const uvRecommendations = weatherData.recommendations?.uv || 
+                                (Array.isArray(weatherData.recommendations) ? weatherData.recommendations : []);
         alerts.push({
           type: 'uv',
           level: weatherData.uv.category,
           value: weatherData.uv.value,
-          threshold: thresholds.uv
+          threshold: thresholds.uv,
+          recommendations: uvRecommendations
         });
       }
 
@@ -135,27 +133,25 @@ class NotificationService {
         soundName = 'default';
       } else if (alert.type === 'uv') {
         title = '☀️ UV Index Alert';
-        message = `UV Index is ${alert.value} (${alert.level}). This exceeds the safe threshold of ${alert.uv}.`;
+        message = `UV Index is ${alert.value} (${alert.level}). This exceeds the safe threshold of ${alert.threshold}.`;
         soundName = 'default';
       }
 
-      PushNotification.localNotification({
-        channelId: "ceylon-air-alerts",
-        title: title,
-        message: message,
-        soundName: soundName,
-        vibrate: true,
-        vibration: 300,
-        priority: "high",
-        importance: "high",
-        autoCancel: true,
-        largeIcon: "ic_launcher",
-        smallIcon: "ic_notification",
-        bigText: message,
-        subText: "CeylonAir Health Alert",
-        color: "#FF6B6B",
-        actions: ["View Details", "Dismiss"],
-        invokeApp: true,
+      // Append up to first 3 health recommendations if available
+      if (alert.recommendations && alert.recommendations.length > 0) {
+        const recs = alert.recommendations.slice(0, 3).map(r => `• ${r}`).join('\n');
+        message += `\n\nHealth recommendations:\n${recs}`;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body: message,
+          sound: soundName,
+          subtitle: 'CeylonAir Health Alert',
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null, // fire immediately
       });
 
       console.log(`Alert sent: ${alert.type} - ${alert.value}`);
@@ -167,16 +163,14 @@ class NotificationService {
   async sendTestNotification() {
     try {
       await this.initialize();
-      
-      PushNotification.localNotification({
-        channelId: "ceylon-air-alerts",
-        title: "CeylonAir Test",
-        message: "This is a test notification from CeylonAir",
-        soundName: "default",
-        vibrate: true,
-        priority: "high",
-        importance: "high",
-        autoCancel: true,
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'CeylonAir Test',
+          body: 'This is a test notification from CeylonAir',
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null,
       });
 
       console.log('Test notification sent');
@@ -187,18 +181,16 @@ class NotificationService {
 
   async schedulePeriodicCheck() {
     try {
-      // Cancel any existing scheduled notifications
-      PushNotification.cancelAllLocalNotifications();
-
-      // Schedule periodic checks (every hour)
-      PushNotification.localNotificationSchedule({
-        channelId: "ceylon-air-alerts",
-        title: "CeylonAir Health Check",
-        message: "Checking your local air quality and UV conditions...",
-        date: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
-        soundName: "default",
-        repeatType: "time",
-        repeatTime: 60 * 60 * 1000, // Repeat every hour
+      // Expo Notifications doesn't support arbitrary repeat time; use seconds repeat for Android/iOS
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'CeylonAir Health Check',
+          body: 'Checking your local air quality and UV conditions...',
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.DEFAULT,
+        },
+        trigger: { seconds: 60 * 60, repeats: true },
       });
 
       console.log('Periodic health check scheduled');
@@ -209,7 +201,7 @@ class NotificationService {
 
   async cancelAllNotifications() {
     try {
-      PushNotification.cancelAllLocalNotifications();
+      await Notifications.cancelAllScheduledNotificationsAsync();
       console.log('All notifications cancelled');
     } catch (error) {
       console.error('Error cancelling notifications:', error);

@@ -13,6 +13,7 @@ import LocationService from '../services/LocationService';
 import ApiService from '../services/ApiService';
 import HybridAlgorithm from '../utils/hybridAlgorithm';
 import BackgroundFetchService from '../services/BackgroundFetchService';
+import NotificationService from '../services/NotificationService';
 
 const { width } = Dimensions.get('window');
 
@@ -82,6 +83,13 @@ const Dashboard = () => {
 
       setWeatherData(processedData);
       setLoading(false);
+
+      // Check thresholds and send notifications based on user preferences
+      try {
+        await NotificationService.checkAndSendAlerts(processedData);
+      } catch (notifyErr) {
+        console.error('Notification error:', notifyErr);
+      }
       
     } catch (error) {
       console.error('Error fetching weather data:', error);
@@ -144,7 +152,7 @@ const Dashboard = () => {
     return (
       <View style={styles.recommendationsCard}>
         <Text style={styles.recommendationsTitle}>Health Recommendations</Text>
-        {weatherData.recommendations.map((recommendation, index) => (
+        {weatherData.recommendations?.all.map((recommendation, index) => (
           <Text key={index} style={styles.recommendationItem}>
             • {recommendation}
           </Text>

@@ -31,6 +31,7 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "WAKE_LOCK"
@@ -45,6 +46,15 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow CeylonAir to use your location to provide air quality data for your area."
         }
+      ],
+      [
+        "expo-notifications"
+      ],
+      [
+        "expo-background-fetch"
+      ],
+      [
+        "expo-task-manager"
       ]
     ]
   }
