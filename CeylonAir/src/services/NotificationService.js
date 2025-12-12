@@ -16,6 +16,8 @@ class NotificationService {
     if (this.isInitialized) return;
 
     try {
+      console.log('🔔 Initializing notification service...');
+
       // Configure handler to show alerts when foregrounded
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
@@ -26,16 +28,30 @@ class NotificationService {
         }),
       });
 
-      // Request permissions
-      // In Expo Go, remote push is unsupported; still request local perms but avoid noisy logs
+      // Request permissions with more explicit handling
       const { status: existing } = await Notifications.getPermissionsAsync();
+      console.log('📱 Current notification permission status:', existing);
+
       let finalStatus = existing;
       if (existing !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
+        console.log('🔒 Requesting notification permissions...');
+        const { status } = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+            allowAnnouncements: false,
+          },
+        });
         finalStatus = status;
+        console.log('📝 Permission request result:', status);
       }
+
       if (finalStatus !== 'granted') {
-        console.warn('Notification permission not granted');
+        console.warn('⚠️ Notification permission not granted:', finalStatus);
+        // Continue initialization even without permissions for local notifications
+      } else {
+        console.log('✅ Notification permissions granted');
       }
 
       // Android channel
@@ -81,14 +97,14 @@ class NotificationService {
   async checkAndSendAlerts(weatherData) {
     try {
       await this.initialize();
-      
+
       const thresholds = await this.getThresholds();
       const alerts = [];
 
       // Check AQI threshold
       if (weatherData.aqi && weatherData.aqi.value > thresholds.aqi) {
-        const aqiRecommendations = weatherData.recommendations?.aqi || 
-                                 (Array.isArray(weatherData.recommendations) ? weatherData.recommendations : []);
+        const aqiRecommendations = weatherData.recommendations?.aqi ||
+          (Array.isArray(weatherData.recommendations) ? weatherData.recommendations : []);
         alerts.push({
           type: 'aqi',
           level: weatherData.aqi.category,
@@ -100,8 +116,8 @@ class NotificationService {
 
       // Check UV threshold
       if (weatherData.uv && weatherData.uv.value > thresholds.uv) {
-        const uvRecommendations = weatherData.recommendations?.uv || 
-                                (Array.isArray(weatherData.recommendations) ? weatherData.recommendations : []);
+        const uvRecommendations = weatherData.recommendations?.uv ||
+          (Array.isArray(weatherData.recommendations) ? weatherData.recommendations : []);
         alerts.push({
           type: 'uv',
           level: weatherData.uv.category,
@@ -112,8 +128,18 @@ class NotificationService {
       }
 
       // Send notifications for each alert
+      console.log(`📨 Sending ${alerts.length} alert(s)`);
       for (const alert of alerts) {
-        await this.sendAlert(alert);
+        try {
+          await this.sendAlert(alert);
+          await this.saveToHistory(alert);
+        } catch (error) {
+          console.error('❌ Failed to send individual alert:', error);
+        }
+      }
+
+      if (alerts.length > 0) {
+        console.log(`✅ Successfully processed ${alerts.length} alerts`);
       }
 
       return alerts;
@@ -125,57 +151,87 @@ class NotificationService {
 
   async sendAlert(alert) {
     try {
+      console.log(`🔔 Preparing to send alert:`, alert.type, alert.value);
+
       let title, message, soundName;
 
       if (alert.type === 'aqi') {
         title = '🚨 Air Quality Alert';
-        message = `Air Quality Index is ${alert.value} (${alert.level}). This exceeds the safe threshold of ${alert.threshold}.`;
+        message = `Air Quality Index is ${alert.value} (${alert.level}). This exceeds your threshold of ${alert.threshold}.`;
         soundName = 'default';
       } else if (alert.type === 'uv') {
         title = '☀️ UV Index Alert';
-        message = `UV Index is ${alert.value} (${alert.level}). This exceeds the safe threshold of ${alert.threshold}.`;
+        message = `UV Index is ${alert.value} (${alert.level}). This exceeds your threshold of ${alert.threshold}.`;
+        soundName = 'default';
+      } else {
+        title = '⚠️ Health Alert';
+        message = `${alert.type} level is ${alert.value} (${alert.level}).`;
         soundName = 'default';
       }
 
-      // Append up to first 3 health recommendations if available
+      // Append health recommendations if available (limit message length)
       if (alert.recommendations && alert.recommendations.length > 0) {
-        const recs = alert.recommendations.slice(0, 3).map(r => `• ${r}`).join('\n');
-        message += `\n\nHealth recommendations:\n${recs}`;
+        const recs = alert.recommendations.slice(0, 2).map(r => `• ${r}`).join('\n');
+        if (message.length + recs.length < 200) { // Keep under notification limits
+          message += `\n\n${recs}`;
+        }
       }
 
-      await Notifications.scheduleNotificationAsync({
+      console.log(`📤 Sending notification: ${title}`);
+
+      const notificationConfig = {
         content: {
           title,
           body: message,
           sound: soundName,
           subtitle: 'CeylonAir Health Alert',
-          priority: Notifications.AndroidNotificationPriority.MAX,
+          data: { alertType: alert.type, value: alert.value },
         },
         trigger: null, // fire immediately
-      });
+      };
 
-      console.log(`Alert sent: ${alert.type} - ${alert.value}`);
+      // Add Android-specific settings
+      if (Platform.OS === 'android') {
+        notificationConfig.content.priority = Notifications.AndroidNotificationPriority.MAX;
+        notificationConfig.content.channelId = 'ceylon-air-alerts';
+      }
+
+      const result = await Notifications.scheduleNotificationAsync(notificationConfig);
+      console.log(`✅ Alert sent successfully: ${alert.type} - ${alert.value}, ID: ${result}`);
+
+      return result;
     } catch (error) {
-      console.error('Error sending alert:', error);
+      console.error('❌ Error sending alert:', error);
+      throw error;
     }
   }
 
   async sendTestNotification() {
     try {
+      console.log('🧪 Sending test notification...');
       await this.initialize();
-      await Notifications.scheduleNotificationAsync({
+
+      const notificationConfig = {
         content: {
-          title: 'CeylonAir Test',
-          body: 'This is a test notification from CeylonAir',
+          title: '🧪 CeylonAir Test',
+          body: 'This is a test notification from CeylonAir. If you see this, notifications are working!',
           sound: 'default',
-          priority: Notifications.AndroidNotificationPriority.MAX,
+          data: { test: true },
         },
         trigger: null,
-      });
+      };
 
-      console.log('Test notification sent');
+      if (Platform.OS === 'android') {
+        notificationConfig.content.priority = Notifications.AndroidNotificationPriority.MAX;
+        notificationConfig.content.channelId = 'ceylon-air-alerts';
+      }
+
+      const result = await Notifications.scheduleNotificationAsync(notificationConfig);
+      console.log('✅ Test notification sent successfully, ID:', result);
+      return result;
     } catch (error) {
-      console.error('Error sending test notification:', error);
+      console.error('❌ Error sending test notification:', error);
+      throw error;
     }
   }
 
@@ -228,17 +284,39 @@ class NotificationService {
         timestamp: Date.now(),
         read: false
       };
-      
+
       history.unshift(notification);
-      
+
       // Keep only last 50 notifications
       if (history.length > 50) {
         history.splice(50);
       }
-      
+
       await AsyncStorage.setItem('notification_history', JSON.stringify(history));
+      console.log('📝 Saved notification to history');
     } catch (error) {
-      console.error('Error saving to notification history:', error);
+      console.error('❌ Error saving to notification history:', error);
+    }
+  }
+
+  // Check if notifications are enabled and working
+  async checkNotificationStatus() {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      const isInitialized = this.isInitialized;
+
+      return {
+        permissionStatus: status,
+        isInitialized,
+        canSendNotifications: status === 'granted' && isInitialized
+      };
+    } catch (error) {
+      console.error('❌ Error checking notification status:', error);
+      return {
+        permissionStatus: 'unknown',
+        isInitialized: false,
+        canSendNotifications: false
+      };
     }
   }
 }
