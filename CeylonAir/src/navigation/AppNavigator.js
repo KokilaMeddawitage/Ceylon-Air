@@ -37,9 +37,9 @@ const TabNavigator = () => {
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#e0e0e0',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 25,
+          paddingTop: 8,
+          height: 85,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -48,29 +48,29 @@ const TabNavigator = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen 
-        name="Dashboard" 
+      <Tab.Screen
+        name="Dashboard"
         component={Dashboard}
         options={{
           title: 'Dashboard',
         }}
       />
-      <Tab.Screen 
-        name="Map" 
+      <Tab.Screen
+        name="Map"
         component={AirQualityMapView}
         options={{
           title: 'Stations',
         }}
       />
-      <Tab.Screen 
-        name="Charts" 
+      <Tab.Screen
+        name="Charts"
         component={ChartsView}
         options={{
           title: 'Charts',
         }}
       />
-      <Tab.Screen 
-        name="Settings" 
+      <Tab.Screen
+        name="Settings"
         component={Settings}
         options={{
           title: 'Settings',
