@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontSize: 16,
-    color: '#64B5F6', // Light blue for dark theme
+    color: '#3b57d5', 
     fontWeight: 'bold',
   },
   header: {
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   metricsGrid: {
-    padding: 15,
+    padding: 25,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     minHeight: 140,
   },
   cardContent: {
-    padding: 20,
+    padding: 15,
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   recommendationsCard: {
-    backgroundColor: '#2A2A2A', // Dark card background
+    backgroundColor: '#2A2A2A', 
     margin: 15,
     padding: 20,
     borderRadius: 20,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   recommendationsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#E0E0E0', // Light text
+    color: '#E0E0E0', 
     marginBottom: 15,
   },
   recommendationItem: {
@@ -523,10 +523,10 @@ const styles = StyleSheet.create({
   },
   dataInfo: {
     backgroundColor: '#2A2A2A', // Dark card background
-    margin: 10,
+    margin: 15,
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+    borderRadius: 20,
+    marginBottom: 10,
   },
   dataInfoTitle: {
     fontSize: 16,
