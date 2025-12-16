@@ -105,7 +105,7 @@ const AppNavigator = () => {
   const darkTheme = {
     dark: true,
     colors: {
-      primary: '#64B5F6',
+      primary: '#3b57d5',
       background: '#121212',
       card: '#2A2A2A',
       text: '#E0E0E0',
