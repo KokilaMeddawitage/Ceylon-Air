@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Path } from 'react-native-svg';
 import LocationService from '../services/LocationService';
 import ApiService from '../services/ApiService';
 import HybridAlgorithm from '../utils/hybridAlgorithm';
@@ -122,33 +123,171 @@ const Dashboard = () => {
   };
 
   const getCardGradient = (value, type) => {
-    if (type === 'aqi') {
-      if (value <= 50) return ['#2E7D32', '#388E3C']; // Dark green gradient
-      if (value <= 100) return ['#F9A825', '#FBC02D']; // Dark yellow gradient
-      if (value <= 150) return ['#E65100', '#F57C00']; // Dark orange gradient
-      if (value <= 200) return ['#C62828', '#D32F2F']; // Dark red gradient
-      return ['#6A1B9A', '#8E24AA']; // Dark purple gradient
-    } else if (type === 'uv') {
-      if (value <= 2) return ['#2E7D32', '#388E3C']; // Dark green gradient
-      if (value <= 5) return ['#F9A825', '#FBC02D']; // Dark yellow gradient
-      if (value <= 7) return ['#E65100', '#F57C00']; // Dark orange gradient
-      if (value <= 10) return ['#C62828', '#D32F2F']; // Dark red gradient
-      return ['#6A1B9A', '#8E24AA']; // Dark purple gradient
-    } else if (type === 'atmosphere') {
-      if (value >= 80) return ['#00695C', '#00796B']; // Dark teal gradient
-      if (value >= 60) return ['#F9A825', '#FBC02D']; // Dark yellow gradient
-      if (value >= 40) return ['#E65100', '#F57C00']; // Dark orange gradient
-      return ['#C62828', '#D32F2F']; // Dark red gradient
-    }
-    return ['#1565C0', '#1976D2']; // Dark blue gradient
+    // Return clear/transparent gradients for better gauge visibility
+    return ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']; // Light transparent gradient
   };
 
-  const renderMetricCard = (title, value, unit, category, type, description) => {
+  const getRiskLevelColor = (category, type, value) => {
+    if (type === 'aqi') {
+      if (category?.toLowerCase().includes('good')) return '#2E7D32';
+      if (category?.toLowerCase().includes('moderate')) return '#F9A825';
+      if (category?.toLowerCase().includes('unhealthy for sensitive') || category?.toLowerCase().includes('sensitive')) return '#E65100';
+      if (category?.toLowerCase().includes('unhealthy')) return '#C62828';
+      if (category?.toLowerCase().includes('very unhealthy')) return '#6A1B9A';
+      if (category?.toLowerCase().includes('hazardous')) return '#4A148C';
+    } else if (type === 'uv') {
+      if (category?.toLowerCase().includes('low')) return '#2E7D32';
+      if (category?.toLowerCase().includes('moderate')) return '#F9A825';
+      if (category?.toLowerCase().includes('high') && !category?.toLowerCase().includes('very')) return '#E65100';
+      if (category?.toLowerCase().includes('very high')) return '#C62828';
+      if (category?.toLowerCase().includes('extreme')) return '#6A1B9A';
+    } else if (type === 'atmosphere') {
+      if (category?.toLowerCase().includes('low')) return '#C62828';
+      if (category?.toLowerCase().includes('moderate')) return '#F9A825';
+      if (category?.toLowerCase().includes('high')) return '#00695C';
+    }
+    return '#666666'; // Default gray
+  };
+
+  const getRiskLevelSymbol = (category, type) => {
+    if (type === 'aqi') {
+      if (category?.toLowerCase().includes('good')) return '🟢';
+      if (category?.toLowerCase().includes('moderate')) return '⚠️';
+      if (category?.toLowerCase().includes('unhealthy for sensitive') || category?.toLowerCase().includes('sensitive')) return '🔶';
+      if (category?.toLowerCase().includes('unhealthy') && !category?.toLowerCase().includes('very')) return '🚨';
+      if (category?.toLowerCase().includes('very unhealthy')) return '🔶';
+      if (category?.toLowerCase().includes('hazardous')) return '🚨';
+    } else if (type === 'uv') {
+      if (category?.toLowerCase().includes('low')) return '🟢';
+      if (category?.toLowerCase().includes('moderate')) return '⚠️';
+      if (category?.toLowerCase().includes('high') && !category?.toLowerCase().includes('very')) return '☢️';
+      if (category?.toLowerCase().includes('very high')) return '🔶';
+      if (category?.toLowerCase().includes('extreme')) return '🚨';
+    } else if (type === 'atmosphere') {
+      if (category?.toLowerCase().includes('low')) return '🚨';
+      if (category?.toLowerCase().includes('moderate')) return '⚠️';
+      if (category?.toLowerCase().includes('high')) return '🟢';
+    }
+    return '⚪'; // Default symbol
+  };
+
+  const getGaugeColor = (value, type) => {
+    if (type === 'aqi') {
+      if (value <= 50) return '#1cba51';
+      if (value <= 100) return '#f9f100';
+      if (value <= 150) return '#F57C00';
+      if (value <= 200) return '#f32d2d';
+      return '#8E24AA';
+    } else if (type === 'uv') {
+      if (value <= 2) return '#1cba51';
+      if (value <= 5) return '#f9f100';
+      if (value <= 7) return '#F57C00';
+      if (value <= 10) return '#f32d2d';
+      return '#8E24AA';
+    } else if (type === 'atmosphere') {
+      if (value >= 80) return '#1cba51';
+      if (value >= 60) return '#FBC02D';
+      if (value >= 40) return '#F57C00';
+      return '#f32d2d';
+    }
+    return '#1976D2';
+  };
+
+  const getMaxValue = (type) => {
+    if (type === 'aqi') return 300;
+    if (type === 'uv') return 15;
+    if (type === 'atmosphere') return 100;
+    return 100;
+  };
+
+  const GaugeChart = ({ value, type, isHalfWidth = false }) => {
+    const size = isHalfWidth ? 80 : 100;
+    const strokeWidth = isHalfWidth ? 8 : 10;
+    const radius = (size - strokeWidth) / 2;
+    const maxValue = getMaxValue(type);
+    const percentage = Math.min(value / maxValue, 1);
+    const gaugeColor = getGaugeColor(value, type);
+
+    // Determine if this should be a half circle gauge
+    const isHalfCircle = type === 'aqi' || type === 'uv';
+    
+    if (isHalfCircle) {
+      // Half circle gauge for AQI and UV
+      const circumference = Math.PI * radius; // Half circle circumference
+      const strokeDasharray = `${circumference * percentage} ${circumference}`;
+      
+      return (
+        <View style={[styles.gaugeContainer, isHalfWidth && styles.halfWidthGaugeContainer]}>
+          <Svg width={size} height={size / 2 + 20} style={styles.gauge}>
+            {/* Background arc */}
+            <Path
+              d={`M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.2)"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+            {/* Progress arc */}
+            <Path
+              d={`M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`}
+              fill="none"
+              stroke={gaugeColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={strokeDasharray}
+              strokeDashoffset={0} // Start from leftmost position (9 o'clock)
+            />
+          </Svg>
+          <View style={[styles.gaugeValueContainer, isHalfWidth && styles.halfWidthGaugeValueContainer, styles.halfCircleValueContainer]}>
+            <Text style={[styles.gaugeValue, isHalfWidth && styles.halfWidthGaugeValue]}>{value}</Text>
+          </View>
+        </View>
+      );
+    } else {
+      // Full circle gauge for atmosphere
+      const circumference = 2 * Math.PI * radius;
+      const strokeDasharray = `${circumference * percentage} ${circumference}`;
+      
+      return (
+        <View style={[styles.gaugeContainer, isHalfWidth && styles.halfWidthGaugeContainer]}>
+          <Svg width={size} height={size} style={styles.gauge}>
+            {/* Background circle */}
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.2)"
+              strokeWidth={strokeWidth}
+            />
+            {/* Progress circle */}
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={gaugeColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={strokeDasharray}
+              strokeDashoffset={-circumference / 4} // Start from top by offsetting by quarter circle
+              transform={`rotate(0 ${size / 2} ${size / 2})`}
+            />
+          </Svg>
+          <View style={[styles.gaugeValueContainer, isHalfWidth && styles.halfWidthGaugeValueContainer]}>
+            <Text style={[styles.gaugeValue, isHalfWidth && styles.halfWidthGaugeValue]}>{value}</Text>
+          </View>
+        </View>
+      );
+    }
+  };
+
+  const renderMetricCard = (title, value, unit, category, type, description, isHalfWidth = false) => {
     const gradientColors = getCardGradient(value, type);
     
     // Get appropriate icon component for each card type
     const getCardIcon = (cardType) => {
-      const iconSize = 24;
+      const iconSize = isHalfWidth ? 20 : 24;
       const iconColor = '#FFFFFF';
       
       switch (cardType) {
@@ -167,15 +306,28 @@ const Dashboard = () => {
       <LinearGradient
         key={title}
         colors={gradientColors}
-        style={styles.metricCard}
+        style={[styles.metricCard, isHalfWidth && styles.halfWidthCard]}
       >
         <View style={styles.cardContent}>
-          <Text style={styles.metricTitle}>{title}</Text>
-          <Text style={styles.metricValue}>{value}</Text>
-          <Text style={styles.metricUnit}>{unit}</Text>
-          <Text style={styles.metricCategory}>{category}</Text>
-          <Text style={styles.metricDescription}>{description}</Text>
-          <View style={styles.cardIcon}>
+          <Text style={[styles.metricTitle, isHalfWidth && styles.halfWidthTitle]}>{title}</Text>
+          
+          {/* Conditional rendering: Gauge for atmosphere, colored values for AQI and UV */}
+            <GaugeChart value={value} type={type} isHalfWidth={isHalfWidth} />
+          <Text style={[styles.metricUnit, isHalfWidth && styles.halfWidthUnit]}>{unit}</Text>
+          
+          {/* Risk Level Badge with colored text and symbol */}
+          <View style={[styles.riskLevelBadge, isHalfWidth && styles.halfWidthRiskBadge]}>
+            <Text style={[
+              styles.riskLevelText, 
+              isHalfWidth && styles.halfWidthRiskText,
+              { color: getRiskLevelColor(category, type, value) }
+            ]}>
+              {getRiskLevelSymbol(category, type)} {category}
+            </Text>
+          </View>
+          
+          <Text style={[styles.metricDescription, isHalfWidth && styles.halfWidthDescription]}>{description}</Text>
+          <View style={[styles.cardIcon, isHalfWidth && styles.halfWidthIcon]}>
             {getCardIcon(type)}
           </View>
         </View>
@@ -190,7 +342,10 @@ const Dashboard = () => {
 
     return (
       <View style={styles.recommendationsCard}>
-        <Text style={styles.recommendationsTitle}>Health Recommendations</Text>
+        <View style={styles.recommendationsTitleRow}>
+          <MaterialIcons name="health-and-safety" size={24} color="#E0E0E0" style={styles.recommendationsTitleIcon} />
+          <Text style={styles.recommendationsTitle}>Health Recommendations</Text>
+        </View>
         {weatherData.recommendations.all.map((recommendation, index) => (
           <Text key={index} style={styles.recommendationItem}>
             • {recommendation}
@@ -235,13 +390,11 @@ const Dashboard = () => {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        {/* Weather Icon */}
-        <View style={styles.headerIconContainer}>
-          <Ionicons name="leaf" size={40} color="white" />
+        {/* App Title with Icon */}
+        <View style={styles.titleRow}>
+          <Ionicons name="leaf" size={40} color="#64B5F6" style={styles.titleIcon} />
+          <Text style={styles.headerTitle}>CeylonAir</Text>
         </View>
-        
-        {/* App Title */}
-        <Text style={styles.headerTitle}>CeylonAir</Text>
         <Text style={styles.headerSubtitle}>Air Quality Monitor</Text>
         
         {/* Location Info */}
@@ -280,24 +433,7 @@ const Dashboard = () => {
       {weatherData && (
         <>
           <View style={styles.metricsGrid}>
-            {renderMetricCard(
-              'Air Quality Index',
-              weatherData.aqi.value,
-              'AQI',
-              weatherData.aqi.category,
-              'aqi',
-              `Source: ${weatherData.aqi.source}`
-            )}
-            
-            {renderMetricCard(
-              'UV Index',
-              weatherData.uv.value,
-              'UVI',
-              weatherData.uv.category,
-              'uv',
-              `Source: ${weatherData.uv.source}`
-            )}
-            
+            {/* Full width card for Atmosphere Score at the top */}
             {renderMetricCard(
               'Atmosphere Score',
               weatherData.atmosphereScore,
@@ -306,6 +442,29 @@ const Dashboard = () => {
               'atmosphere',
               'Overall health score'
             )}
+            
+            {/* Side by side cards for AQI and UV below */}
+            <View style={styles.halfWidthRow}>
+              {renderMetricCard(
+                'Air Quality Index',
+                weatherData.aqi.value,
+                'AQI',
+                weatherData.aqi.category.toUpperCase(),
+                'aqi',
+                `Source: ${weatherData.aqi.source}`,
+                true // isHalfWidth flag
+              )}
+              
+              {renderMetricCard(
+                'UV Index',
+                weatherData.uv.value,
+                'UVI',
+                weatherData.uv.category.toUpperCase(),
+                'uv',
+                `Source: ${weatherData.uv.source}`,
+                true // isHalfWidth flag
+              )}
+            </View>
           </View>
 
           {renderRecommendations()}
@@ -375,14 +534,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerIconContainer: {
-    marginBottom: 15,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  titleIcon: {
+    marginRight: 12,
   },
   headerTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
+    color: '#64B5F6',
     letterSpacing: 1,
   },
   headerSubtitle: {
@@ -427,6 +590,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  halfWidthRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
+  },
   metricCard: {
     marginBottom: 15,
     borderRadius: 20,
@@ -437,6 +606,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     minHeight: 140,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Clear background with subtle tint
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)', // Subtle border for definition
+  },
+  halfWidthCard: {
+    width: (width - 65) / 2, // Half width minus padding and gap
+    marginBottom: 0,
+    minHeight: 160, // Slightly taller for better proportions
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Clear background with subtle tint
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)', // Subtle border for definition
   },
   cardContent: {
     padding: 15,
@@ -448,7 +628,7 @@ const styles = StyleSheet.create({
   metricTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#E0E0E0', // Light text for dark theme
+    color: '#FFFFFF', // White text for better visibility on clear background
     textAlign: 'center',
     marginBottom: 15,
   },
@@ -461,12 +641,12 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FFFFFF', // White text for values
+    color: '#000000', // Black text for values
     marginRight: 8,
   },
   metricUnit: {
     fontSize: 16,
-    color: '#E0E0E0', // Light text
+    color: '#FFFFFF', // White text for better visibility on clear background
     fontWeight: '600',
   },
   metricCategory: {
@@ -478,7 +658,7 @@ const styles = StyleSheet.create({
   },
   metricDescription: {
     fontSize: 12,
-    color: '#B0B0B0', // Muted light text
+    color: '#E0E0E0', // Light gray text for better visibility on clear background
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -498,9 +678,104 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 2,
   },
+  // Half-width card specific styles
+  halfWidthTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  halfWidthValue: {
+    fontSize: 36,
+  },
+  halfWidthUnit: {
+    fontSize: 14,
+  },
+  halfWidthCategory: {
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  halfWidthDescription: {
+    fontSize: 10,
+  },
+  halfWidthIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    bottom: 10,
+    right: 10,
+  },
+  // Risk Level Badge Styles
+  riskLevelBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  riskLevelText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    // Color will be set dynamically based on risk level
+  },
+  halfWidthRiskBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginVertical: 6,
+  },
+  halfWidthRiskText: {
+    fontSize: 12,
+  },
+  // Gauge Chart Styles
+  gaugeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    position: 'relative',
+  },
+  halfWidthGaugeContainer: {
+    marginVertical: 8,
+  },
+  gauge: {
+    // No rotation needed for full circle
+  },
+  gaugeValueContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  halfWidthGaugeValueContainer: {
+    // Same positioning for half-width gauges
+  },
+  halfCircleValueContainer: {
+    position: 'absolute',
+    bottom: -5,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gaugeValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF', // White text for better visibility on clear background
+  },
+  halfWidthGaugeValue: {
+    fontSize: 20,
+  },
   recommendationsCard: {
     backgroundColor: '#2A2A2A', 
-    margin: 15,
+    marginHorizontal: 15,
+    marginBottom: 15,
     padding: 20,
     borderRadius: 20,
     elevation: 3,
@@ -509,17 +784,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 4,
   },
+  recommendationsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  recommendationsTitleIcon: {
+    marginRight: 8,
+  },
   recommendationsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#E0E0E0', 
-    marginBottom: 15,
+  },
+  recommendationItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  recommendationIcon: {
+    fontSize: 16,
+    marginRight: 10,
+    marginTop: 2,
+    minWidth: 20,
   },
   recommendationItem: {
     fontSize: 14,
     color: '#B0B0B0', // Muted light text
-    marginBottom: 8,
     lineHeight: 20,
+    flex: 1,
   },
   dataInfo: {
     backgroundColor: '#2A2A2A', // Dark card background
