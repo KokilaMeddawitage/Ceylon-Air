@@ -161,9 +161,6 @@ The app requires the following permissions:
 
 ## Development Notes
 
-### Mock Data (optional)
-`src/components/Charts.js` includes an optional mock data helper to visualize charts during testing. Live API integration is enabled via `ApiService.js` using Axios.
-
 ### API Integration
 1. **IQAir**: Air quality data with station information
 2. **OpenWeatherMap**: Air quality and UV index data
