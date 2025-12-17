@@ -152,7 +152,11 @@ const Settings = ({ navigation }) => {
   ];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
@@ -165,8 +169,8 @@ const Settings = ({ navigation }) => {
           <Switch
             value={notificationsEnabled}
             onValueChange={toggleNotifications}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={notificationsEnabled ? '#2196F3' : '#f4f3f4'}
+            trackColor={{ false: '#767577', true: '#64B5F6' }}
+            thumbColor={notificationsEnabled ? '#E0E0E0' : '#888888'}
           />
         </View>
 
@@ -230,20 +234,23 @@ const Settings = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', 
+  },
+  scrollContent: {
+    paddingBottom: 120, 
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', 
   },
   loadingText: {
     fontSize: 18,
-    color: '#333',
+    color: '#E0E0E0', 
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1A1A1A', 
     padding: 20,
     paddingTop: 50,
     alignItems: 'center',
@@ -254,20 +261,20 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: '#2A2A2A',
     margin: 10,
     padding: 20,
     borderRadius: 15,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.4,
     shadowRadius: 2.22,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#E0E0E0', 
     marginBottom: 15,
   },
   switchContainer: {
@@ -278,7 +285,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    color: '#333',
+    color: '#E0E0E0',
   },
   pickerContainer: {
     marginBottom: 20,
@@ -286,11 +293,12 @@ const styles = StyleSheet.create({
   pickerLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#E0E0E0',
     marginBottom: 10,
   },
   picker: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#404040',
+    color: '#E0E0E0',
     borderRadius: 10,
   },
   saveButton: {
@@ -301,19 +309,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   saveButtonText: {
-    color: 'white',
+    color: 'black',
     fontSize: 16,
     fontWeight: 'bold',
   },
   testButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#64B5F6', // Light blue for dark theme
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 10,
   },
   testButtonText: {
-    color: 'white',
+    color: 'black',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -322,13 +330,13 @@ const styles = StyleSheet.create({
   },
   aboutText: {
     fontSize: 16,
-    color: '#333',
+    color: '#E0E0E0', // Light text
     marginBottom: 5,
     fontWeight: 'bold',
   },
   aboutSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: '#B0B0B0', // Muted light text
     lineHeight: 20,
     marginTop: 10,
   },
