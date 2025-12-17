@@ -21,18 +21,75 @@ const AirQualityMapView = () => {
     longitudeDelta: 0.0421,
   });
   const [userLocation, setUserLocation] = useState(null);
+  const [lastKnownLocation, setLastKnownLocation] = useState(null);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reloadingStations, setReloadingStations] = useState(false);
   const [isNightMode, setIsNightMode] = useState(false);
+
+  // Minimum distance threshold (in kilometers) before reloading stations
+  const LOCATION_CHANGE_THRESHOLD = 2; // 2km
 
   useEffect(() => {
     initializeMap();
     checkTimeAndSetMapStyle();
     
+    // Start location watching
+    const locationCleanup = startLocationWatching();
+    
     // Update map style every hour
-    const interval = setInterval(checkTimeAndSetMapStyle, 3600000); // 1 hour
-    return () => clearInterval(interval);
+    const styleInterval = setInterval(checkTimeAndSetMapStyle, 3600000); // 1 hour
+    
+    return () => {
+      clearInterval(styleInterval);
+      if (locationCleanup) locationCleanup();
+    };
   }, []);
+
+  // Watch for location changes and reload stations when significant change detected
+  const startLocationWatching = () => {
+    const locationInterval = setInterval(async () => {
+      try {
+        const currentLocation = await LocationService.getLocationForSriLanka();
+        
+        if (lastKnownLocation && userLocation) {
+          const distance = LocationService.calculateDistance(
+            lastKnownLocation.latitude,
+            lastKnownLocation.longitude,
+            currentLocation.latitude,
+            currentLocation.longitude
+          );
+          
+          // If user moved more than threshold distance, reload stations
+          if (distance >= LOCATION_CHANGE_THRESHOLD) {
+            console.log(`Location changed by ${distance.toFixed(2)}km, reloading stations...`);
+            setReloadingStations(true);
+            setUserLocation(currentLocation);
+            setLastKnownLocation(currentLocation);
+            
+            // Update map region
+            setRegion({
+              latitude: currentLocation.latitude,
+              longitude: currentLocation.longitude,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            });
+            
+            // Reload stations
+            await loadNearbyStations(currentLocation);
+            setReloadingStations(false);
+          }
+        } else {
+          // First time getting location
+          setLastKnownLocation(currentLocation);
+        }
+      } catch (error) {
+        console.warn('Error watching location:', error);
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(locationInterval);
+  };
 
   const checkTimeAndSetMapStyle = () => {
     const currentHour = new Date().getHours();
@@ -47,6 +104,7 @@ const AirQualityMapView = () => {
       // Get user location
       const location = await LocationService.getLocationForSriLanka();
       setUserLocation(location);
+      setLastKnownLocation(location);
 
       // Set map region to user location
       setRegion({
@@ -56,7 +114,7 @@ const AirQualityMapView = () => {
         longitudeDelta: 0.0421,
       });
 
-      // Load nearby stations (mock data for demonstration)
+      // Load nearby stations
       await loadNearbyStations(location);
       
       setLoading(false);
@@ -69,77 +127,143 @@ const AirQualityMapView = () => {
 
   const loadNearbyStations = async (location) => {
     try {
-      // Mock station data for Sri Lanka
+      const API_KEY = process.env.EXPO_PUBLIC_IQAIR_API_KEY;
+      const stations = [];
+      
+      const coordinateOffsets = [
+        { lat: 0, lon: 0 },                    // Current location (0km)
+        
+        // Inner circle - ~5km radius (0.045°)
+        { lat: 0.045, lon: 0 },               // North 5km
+        { lat: -0.045, lon: 0 },              // South 5km
+        { lat: 0, lon: 0.045 },               // East 5km
+        { lat: 0, lon: -0.045 },              // West 5km
+        
+        // Mid circle - ~10km radius (0.09°)
+        { lat: 0.064, lon: 0.064 },           // Northeast 10km
+        { lat: -0.064, lon: 0.064 },          // Southeast 10km
+        { lat: 0.064, lon: -0.064 },          // Northwest 10km
+        { lat: -0.064, lon: -0.064 },         // Southwest 10km
+        { lat: 0.09, lon: 0 },                // North 10km
+        { lat: -0.09, lon: 0 },               // South 10km
+        { lat: 0, lon: 0.09 },                // East 10km
+        { lat: 0, lon: -0.09 },               // West 10km
+        
+        // Outer circle - ~15km radius (0.136°)
+        { lat: 0.096, lon: 0.096 },           // Northeast 15km
+        { lat: -0.096, lon: 0.096 },          // Southeast 15km
+        { lat: 0.096, lon: -0.096 },          // Northwest 15km
+        { lat: -0.096, lon: -0.096 },         // Southwest 15km
+        
+        // Far circle - ~20km radius (0.18°)
+        { lat: 0.18, lon: 0 },                // North 20km
+        { lat: -0.18, lon: 0 },               // South 20km
+        { lat: 0, lon: 0.18 },                // East 20km
+        { lat: 0, lon: -0.18 },               // West 20km
+        { lat: 0.127, lon: 0.127 },           // Northeast 20km
+        { lat: -0.127, lon: 0.127 },          // Southeast 20km
+        { lat: 0.127, lon: -0.127 },          // Northwest 20km
+        { lat: -0.127, lon: -0.127 }          // Southwest 20km
+      ];
+
+      for (let i = 0; i < coordinateOffsets.length; i++) {
+        try {
+          const offset = coordinateOffsets[i];
+          const lat = location.latitude + offset.lat;
+          const lon = location.longitude + offset.lon;
+          
+          const response = await fetch(
+            `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${API_KEY}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.data) {
+              const cityData = data.data;
+              const pollution = cityData.current?.pollution;
+              
+              if (pollution) {
+                // Get AQI category based on US AQI standards
+                const getAQICategory = (aqi) => {
+                  if (aqi <= 50) return 'Good';
+                  if (aqi <= 100) return 'Moderate';
+                  if (aqi <= 150) return 'Unhealthy for Sensitive Groups';
+                  if (aqi <= 200) return 'Unhealthy';
+                  if (aqi <= 300) return 'Very Unhealthy';
+                  return 'Hazardous';
+                };
+
+                const station = {
+                  id: `station_${i + 1}`,
+                  name: `${cityData.city}, ${cityData.state}`,
+                  latitude: lat,
+                  longitude: lon,
+                  aqi: pollution.aqius || 0,
+                  category: getAQICategory(pollution.aqius || 0),
+                  lastUpdate: pollution.ts || new Date().toISOString(),
+                  distance: LocationService.calculateDistance(
+                    location.latitude,
+                    location.longitude,
+                    lat,
+                    lon
+                  )
+                };
+                
+                stations.push(station);
+              }
+            }
+          }
+        } catch (fetchError) {
+          console.warn(`Failed to fetch data for offset ${i}:`, fetchError);
+        }
+        
+        // Add small delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      // Always display stations regardless of count
+      if (stations.length > 0) {
+        // Remove duplicates based on city name and sort by distance
+        const uniqueStations = stations.filter((station, index, self) =>
+          index === self.findIndex(s => s.name === station.name)
+        ).sort((a, b) => a.distance - b.distance);
+        
+        console.log(`Found ${uniqueStations.length} unique stations from API`);
+        setStations(uniqueStations);
+      } else {
+        // Fallback to mock data if API calls fail
+        console.warn('No stations found from API calls, using fallback mock data');
+        const mockStations = [
+          {
+            id: '1',
+            name: 'Current Location (Fallback)',
+            latitude: location.latitude,
+            longitude: location.longitude,
+            aqi: 50,
+            category: 'Good',
+            lastUpdate: new Date().toISOString(),
+            distance: 0
+          }
+        ];
+        setStations(mockStations);
+      }
+    } catch (error) {
+      console.error('Error loading stations:', error);
+      // Fallback to mock data on any error
       const mockStations = [
         {
           id: '1',
-          name: 'Colombo Central',
-          latitude: 6.9271,
-          longitude: 79.8612,
-          aqi: 85,
-          category: 'Moderate',
+          name: 'Current Location',
+          latitude: location.latitude,
+          longitude: location.longitude,
+          aqi: 50,
+          category: 'Good',
           lastUpdate: new Date().toISOString(),
           distance: 0
-        },
-        {
-          id: '2',
-          name: 'Kandy',
-          latitude: 7.2906,
-          longitude: 80.6337,
-          aqi: 72,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 115
-        },
-        {
-          id: '3',
-          name: 'Galle',
-          latitude: 6.0329,
-          longitude: 80.2170,
-          aqi: 95,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 120
-        },
-        {
-          id: '4',
-          name: 'Jaffna',
-          latitude: 9.6615,
-          longitude: 80.0255,
-          aqi: 68,
-          category: 'Moderate',
-          lastUpdate: new Date().toISOString(),
-          distance: 400
-        },
-        {
-          id: '5',
-          name: 'Anuradhapura',
-          latitude: 8.3114,
-          longitude: 80.4037,
-          aqi: 110,
-          category: 'Unhealthy for Sensitive Groups',
-          lastUpdate: new Date().toISOString(),
-          distance: 200
         }
       ];
-
-      // Calculate distances and filter nearby stations
-      const nearbyStations = mockStations
-        .map(station => ({
-          ...station,
-          distance: LocationService.calculateDistance(
-            location.latitude,
-            location.longitude,
-            station.latitude,
-            station.longitude
-          )
-        }))
-        .filter(station => station.distance <= 500) // Within 500km
-        .sort((a, b) => a.distance - b.distance);
-
-      setStations(nearbyStations);
-    } catch (error) {
-      console.error('Error loading stations:', error);
+      setStations(mockStations);
     }
   };
 
@@ -306,7 +430,7 @@ const AirQualityMapView = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Air Quality Stations</Text>
         <Text style={styles.headerSubtitle}>
-          Showing {stations.length} nearby stations
+          {reloadingStations ? 'Updating stations...' : `Showing ${stations.length} nearby stations`}
         </Text>
       </View>
 
