@@ -40,7 +40,7 @@ Welcome to **CeylonAir**, a comprehensive air quality and environmental monitori
 
 ### Location Permission Screen
 
-<img src="../assets/UI/Location%20Permission.jpg" alt="Location Permission" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
+<img src="../assets/UI/Location%20Permission.jpg" alt="Location Permission" width="280"/>
 
 - The app requests permission to access your location
 - This is essential for showing nearby stations and environmental data
@@ -67,8 +67,8 @@ Use the bottom navigation to switch between sections.
 
 The Dashboard provides a quick snapshot of current environmental conditions at your location.
 
-<img src="../assets/UI/dashboard%201.jpg" alt="Dashboard 1" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
-<img src="../assets/UI/dashboard%202.jpg" alt="Dashboard 2" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
+<img src="../assets/UI/dashboard%201.jpg" alt="Dashboard 1" width="280"/>
+<img src="../assets/UI/dashboard%202.jpg" alt="Dashboard 2" width="280"/>
 
 ### Dashboard Displays
 
@@ -121,8 +121,8 @@ A composite score reflecting overall atmospheric conditions including:
 
 The Map View displays all nearby air quality monitoring stations within a 20km radius of your location.
 
-<img src="../assets/UI/Map%20view.jpg" alt="Map View" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
-<img src="../assets/UI/Map%20view%202.jpg" alt="Map View 2" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
+<img src="../assets/UI/Map%20view.jpg" alt="Map View" width="280"/>
+<img src="../assets/UI/Map%20view%202.jpg" alt="Map View 2" width="280"/>
 
 ### Map Features
 
@@ -172,9 +172,9 @@ The legend at the bottom of the screen explains color coding:
 
 The Charts section displays historical trends of air quality data over different time periods.
 
-<img src="../assets/UI/Charts%201.jpg" alt="Charts 1" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
-<img src="../assets/UI/Charts%202.jpg" alt="Charts 2" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
-<img src="../assets/UI/Charts%203.jpg" alt="Charts 3" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
+<img src="../assets/UI/Charts%201.jpg" alt="Charts 1" width="280"/>
+<img src="../assets/UI/Charts%202.jpg" alt="Charts 2" width="280"/>
+<img src="../assets/UI/Charts%203.jpg" alt="Charts 3" width="280"/>
 
 ### Available Periods
 
@@ -233,7 +233,7 @@ Select from three time ranges to view historical data:
 
 Customize your CeylonAir experience with personalized preferences.
 
-<img src="../assets/UI/Settings%201.jpg" alt="Settings 1" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
+<img src="../assets/UI/Settings%201.jpg" alt="Settings 1" width="280"/>
 
 ### Settings Options
 
@@ -319,7 +319,7 @@ Set how frequently the app should fetch new data:
 
 When environmental conditions exceed your set thresholds, you'll receive notifications.
 
-<img src="../assets/UI/notifications.jpg" alt="Notifications" style="width: 90%; max-width: 400px; height: auto; margin: 20px auto; display: block; border-radius: 8px;"/>
+<img src="../assets/UI/notifications.jpg" alt="Notifications" width="280"/>
 
 ### Types of Alerts
 
