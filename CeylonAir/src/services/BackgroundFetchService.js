@@ -71,10 +71,13 @@ class BackgroundFetchService {
     try {
       console.log('Performing background fetch...');
       
+      // Load current fetch interval from user settings
+      await this.loadFetchInterval();
+      
       // Check if enough time has passed since last fetch
       const now = Date.now();
       if (this.lastFetchTime && (now - this.lastFetchTime) < this.fetchInterval) {
-        console.log('Background fetch skipped - too soon since last fetch');
+        console.log(`Background fetch skipped - too soon since last fetch (${Math.round((now - this.lastFetchTime) / 60000)} minutes ago, interval: ${Math.round(this.fetchInterval / 60000)} minutes)`);
         return;
       }
 
@@ -90,7 +93,10 @@ class BackgroundFetchService {
       // Process data with hybrid algorithm
       const processedData = HybridAlgorithm.processWeatherData(weatherData, location);
 
-      // Cache the processed data
+      // Cache the processed data for Charts component
+      await this.saveHistoricalData(processedData, location);
+
+      // Also cache for general weather data cache
       await this.cacheWeatherData(processedData);
 
       // Check for alerts and send notifications
@@ -105,7 +111,7 @@ class BackgroundFetchService {
       }
 
       this.lastFetchTime = now;
-      console.log('Background fetch completed successfully');
+      console.log(`Background fetch completed successfully. Next fetch in ${Math.round(this.fetchInterval / 60000)} minutes`);
 
     } catch (error) {
       console.error('Error in background fetch:', error);
@@ -125,6 +131,62 @@ class BackgroundFetchService {
     } catch (error) {
       console.error('Error caching weather data:', error);
     }
+  }
+
+  // Save data in the format expected by Charts.js component
+  async saveHistoricalData(weatherData, location) {
+    try {
+      const newEntry = {
+        timestamp: Date.now(),
+        latitude: location?.latitude || 6.9271, // Default to Colombo
+        longitude: location?.longitude || 79.8612,
+        locationName: location?.name || 'Colombo',
+        aqi: weatherData?.aqi?.value || weatherData?.airQuality?.aqi || 0,
+        uv: weatherData?.uv?.index || weatherData?.uvIndex || 0,
+        atmosphereScore: weatherData?.atmosphereScore || weatherData?.overallScore || 0,
+        // Additional data for context
+        aqiCategory: this.getAQICategory(weatherData?.aqi?.value || weatherData?.airQuality?.aqi || 0),
+        uvCategory: this.getUVCategory(weatherData?.uv?.index || weatherData?.uvIndex || 0)
+      };
+
+      // Load existing historical data
+      const cached = await AsyncStorage.getItem('ceylon_air_historical_data');
+      let existingData = cached ? JSON.parse(cached) : [];
+
+      // Add new entry
+      existingData.push(newEntry);
+
+      // Remove entries older than 7 days to keep storage manageable
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      existingData = existingData.filter(item => item.timestamp >= sevenDaysAgo);
+
+      // Save updated data
+      await AsyncStorage.setItem('ceylon_air_historical_data', JSON.stringify(existingData));
+      
+      console.log(`Historical data saved to cache. Total entries: ${existingData.length}`);
+      console.log(`New entry: AQI=${newEntry.aqi}, UV=${newEntry.uv}, Score=${newEntry.atmosphereScore}`);
+    } catch (error) {
+      console.error('Error saving historical data:', error);
+    }
+  }
+
+  // Helper method to get AQI category
+  getAQICategory(aqi) {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 150) return 'Unhealthy for Sensitive Groups';
+    if (aqi <= 200) return 'Unhealthy';
+    if (aqi <= 300) return 'Very Unhealthy';
+    return 'Hazardous';
+  }
+
+  // Helper method to get UV category
+  getUVCategory(uv) {
+    if (uv <= 2) return 'Low';
+    if (uv <= 5) return 'Moderate';
+    if (uv <= 7) return 'High';
+    if (uv <= 10) return 'Very High';
+    return 'Extreme';
   }
 
   async getCachedWeatherData() {
@@ -206,6 +268,54 @@ class BackgroundFetchService {
     }
   }
 
+  // Force fetch for Charts component (bypasses time interval check)
+  async fetchForCharts() {
+    try {
+      console.log('Fetching fresh data for charts...');
+      
+      // Get user location
+      const location = await LocationService.getLocationForSriLanka();
+      
+      // Fetch weather data from APIs
+      const weatherData = await ApiService.getAllWeatherData(
+        location.latitude, 
+        location.longitude
+      );
+
+      // Process data with hybrid algorithm
+      const processedData = HybridAlgorithm.processWeatherData(weatherData, location);
+
+      // Save to historical data for charts
+      await this.saveHistoricalData(processedData, location);
+
+      this.lastFetchTime = Date.now();
+      console.log('Fresh data fetched and saved for charts');
+      return processedData;
+    } catch (error) {
+      console.error('Error fetching for charts:', error);
+      throw error;
+    }
+  }
+
+  // Get historical data for charts
+  async getHistoricalData() {
+    try {
+      const cached = await AsyncStorage.getItem('ceylon_air_historical_data');
+      if (cached) {
+        const data = JSON.parse(cached);
+        // Filter out old data beyond 7 days
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const filteredData = data.filter(item => item.timestamp >= sevenDaysAgo);
+        console.log(`Retrieved ${filteredData.length} historical data points`);
+        return filteredData;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting historical data:', error);
+      return [];
+    }
+  }
+
   // Set custom fetch interval
   async setFetchInterval(minutes) {
     try {
@@ -223,10 +333,16 @@ class BackgroundFetchService {
       const stored = await AsyncStorage.getItem('fetch_interval');
       if (stored) {
         this.fetchInterval = parseInt(stored);
-        console.log(`Loaded fetch interval: ${this.fetchInterval}ms`);
+        console.log(`Loaded fetch interval: ${this.fetchInterval}ms (${Math.round(this.fetchInterval / 60000)} minutes)`);
+      } else {
+        // Set default to 60 minutes if not found
+        this.fetchInterval = 60 * 60 * 1000;
+        console.log('No fetch interval found, using default: 60 minutes');
       }
     } catch (error) {
       console.error('Error loading fetch interval:', error);
+      // Fallback to default
+      this.fetchInterval = 60 * 60 * 1000;
     }
   }
 }
