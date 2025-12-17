@@ -83,7 +83,6 @@ const ChartsView = () => {
       
       await BackgroundFetchService.fetchForCharts();
       
-      // Reload the historical data to include the new entry
       await loadHistoricalData();
       
       console.log('Fresh data fetched and charts updated');
@@ -101,7 +100,6 @@ const ChartsView = () => {
     const mockData = [];
     const now = Date.now();
     
-    // Generate 12 data points over the last 2 hours (10 minutes apart)
     for (let i = 0; i < 12; i++) {
       mockData.push({
         timestamp: now - (i * 10 * 60 * 1000), // 10 minutes apart
