@@ -39,14 +39,14 @@ User Interface (Dashboard, Map, Charts)
 
 ## Tech Stack
 
-- **React Native** with Expo framework
+- **React Native** with Expo managed workflow (SDK 54)
 - **Navigation**: React Navigation v6
-- **Maps**: React Native Maps
-- **Charts**: React Native Chart Kit
-- **Location**: React Native Geolocation Service
-- **Storage**: AsyncStorage
-- **Notifications**: React Native Push Notification
-- **Background Tasks**: React Native Background Fetch
+- **Maps**: react-native-maps (mobile only)
+- **Charts**: react-native-chart-kit, victory-native
+- **Location**: expo-location + react-native-geolocation-service
+- **Storage**: @react-native-async-storage/async-storage
+- **Notifications**: expo-notifications
+- **Background Tasks**: expo-background-fetch + expo-task-manager
 
 ## Installation
 
@@ -64,15 +64,24 @@ User Interface (Dashboard, Map, Charts)
    ```
 
 3. **API Keys Setup**
-   - Replace placeholder API keys in `src/services/ApiService.js`:
-     - IQAir API key
-     - OpenWeatherMap API key
-     - WeatherAPI key
+      - Create a `.env` file in the project root with the following keys (Expo reads `EXPO_PUBLIC_*` at build time):
+     
+           ```env
+           EXPO_PUBLIC_IQAIR_API_KEY=your_iqair_key
+           EXPO_PUBLIC_OPENWEATHER_API_KEY=your_owm_key
+           EXPO_PUBLIC_WEATHERAPI_API_KEY=your_weatherapi_key
+           EXPO_PUBLIC_IQAIR_BASE_URL=https://api.airvisual.com/v2
+           EXPO_PUBLIC_OPENWEATHER_BASE_URL=https://api.openweathermap.org
+           EXPO_PUBLIC_WEATHERAPI_BASE_URL=https://api.weatherapi.com/v1
+           ```
+      - The app reads these via `src/config/environment.js`, used by `src/services/ApiService.js`.
 
 4. **Run the App**
    ```bash
    npm start
    ```
+     - In the Expo CLI, press `a` to open Android, `w` to open web.
+     - Note: Maps are supported on mobile; the web build has limited map support.
 
 ## Project Structure
 
@@ -119,6 +128,7 @@ The app uses a sophisticated hybrid algorithm to process air quality data:
 - **Smart Caching**: Local storage with freshness validation
 - **Alert System**: Threshold-based notifications
 - **Battery Optimization**: Efficient background processing
+ - **Expo Go Limitation**: Background tasks are skipped in Expo Go. Use a development build or a production build to test background fetch and scheduled notifications.
 
 ## Permissions
 
@@ -127,6 +137,7 @@ The app requires the following permissions:
 ### Android
 - `ACCESS_FINE_LOCATION` - For GPS location
 - `ACCESS_COARSE_LOCATION` - For network-based location
+- `POST_NOTIFICATIONS` - For push notifications
 - `RECEIVE_BOOT_COMPLETED` - For background tasks
 - `VIBRATE` - For notifications
 - `WAKE_LOCK` - For background processing
@@ -150,8 +161,8 @@ The app requires the following permissions:
 
 ## Development Notes
 
-### Mock Data
-The app currently uses mock data for demonstration purposes. Replace the mock implementations in `ApiService.js` with actual API calls for production use.
+### Mock Data (optional)
+`src/components/Charts.js` includes an optional mock data helper to visualize charts during testing. Live API integration is enabled via `ApiService.js` using Axios.
 
 ### API Integration
 1. **IQAir**: Air quality data with station information
@@ -159,10 +170,14 @@ The app currently uses mock data for demonstration purposes. Replace the mock im
 3. **WeatherAPI**: UV index and weather conditions
 
 ### Testing
-- Use Expo Go app for testing on physical devices
-- Test location permissions and background processing
-- Verify notification functionality
-- Test offline scenarios with cached data
+- Use Expo Go for rapid UI testing; use a Development Build for background fetch/notifications
+- Test location permissions and GPS accuracy (Settings → App permissions)
+- Verify notification functionality (Android 13+ requires runtime permission)
+- Test offline scenarios with cached data (disable network to confirm cache rendering)
+
+### Quick Share (Dev Tunnel)
+- Share your running dev build via the Expo tunnel link shown in the CLI (e.g., `exp.direct`).
+- Recipients install Expo Go and open the link; for background features, share a development build instead.
 
 ## Future Enhancements
 
@@ -172,3 +187,7 @@ The app currently uses mock data for demonstration purposes. Replace the mock im
 - Integration with health apps
 - Voice alerts and accessibility features
 - Multi-language support for Sri Lankan languages
+
+## Known Limitations
+- `react-native-maps` is a native-only module; full functionality is available on Android/iOS. The web build provides limited or fallback behavior for maps.
+- Background fetch and scheduled notifications do not run in Expo Go; use a dev or production build.
